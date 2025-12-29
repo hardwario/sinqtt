@@ -1575,6 +1575,7 @@ dependencies = [
  "clap",
  "cron",
  "evalexpr",
+ "flate2",
  "hex",
  "jsonpath-rust",
  "regex",
