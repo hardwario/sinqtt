@@ -16,7 +16,7 @@ mqtt:
 
 influxdb:
   host: localhost
-  port: 8086
+  port: 8181
   token: test-token
   org: test-org
   bucket: test-bucket
@@ -42,7 +42,7 @@ mqtt:
 
 influxdb:
   host: localhost
-  port: 8086
+  port: 8181
   token: test-token
   org: test-org
   bucket: test-bucket
@@ -189,7 +189,7 @@ mqtt:
 
 influxdb:
   host: localhost
-  port: 8086
+  port: 8181
   token: test-token
   org: test-org
   bucket: test-bucket
@@ -215,7 +215,7 @@ mqtt:
 
 influxdb:
   host: localhost
-  port: 8086
+  port: 8181
   org: test-org
   bucket: test-bucket
 
@@ -244,7 +244,7 @@ mqtt:
 
 influxdb:
   host: localhost
-  port: 8086
+  port: 8181
   token: ""
   org: test-org
   bucket: test-bucket
@@ -274,7 +274,7 @@ mqtt:
 
 influxdb:
   host: localhost
-  port: 8086
+  port: 8181
   token: test-token
   org: test-org
   bucket: test-bucket
@@ -304,7 +304,7 @@ mqtt:
 
 influxdb:
   host: localhost
-  port: 8086
+  port: 8181
   token: test-token
   org: test-org
   bucket: test-bucket
@@ -344,7 +344,7 @@ mqtt:
 
 influxdb:
   host: localhost
-  port: 8086
+  port: 8181
   token: test-token
   org: test-org
   bucket: test-bucket

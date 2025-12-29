@@ -50,7 +50,7 @@ fn test_parse_raw_string_off() {
 #[test]
 fn test_parse_raw_string_on() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("stat/device/POWER", b"ON", 0).unwrap();
+    let msg = processor.parse_message("stat/device/power", b"ON", 0).unwrap();
 
     assert_eq!(msg.payload, json!("ON"));
 }
@@ -193,16 +193,16 @@ fn test_get_array_element() {
 #[test]
 fn test_get_bracket_notation_special_chars() {
     let processor = MessageProcessor::new(None);
-    // Simulates Tasmota VINDRIKTNING sensor with PM2.5 field
+    // Simulates Tasmota air_quality_sensor sensor with pm2.5 field
     let msg = processor
         .parse_message(
             "tele/tasmota/device1/SENSOR",
-            br#"{"VINDRIKTNING": {"PM2.5": 5, "PM10": 12}}"#,
+            br#"{"air_quality_sensor": {"pm2.5": 5, "PM10": 12}}"#,
             0,
         )
         .unwrap();
 
-    let result = processor.get_value("$.payload.VINDRIKTNING['PM2.5']", &msg).unwrap();
+    let result = processor.get_value("$.payload.air_quality_sensor['pm2.5']", &msg).unwrap();
     assert_eq!(result, json!(5));
 }
 

@@ -400,12 +400,12 @@ fn test_raw_string_payload_processed() {
     let processor = MessageProcessor::new(None);
     let config = make_point_config(
         "power_state",
-        "stat/+/POWER",
+        "stat/+/power",
         vec![("value", "$.payload")],
         vec![("device", "$.topic[1]")],
     );
 
-    let point = process_message_to_point(&processor, &config, "stat/device1/POWER", b"ON")
+    let point = process_message_to_point(&processor, &config, "stat/device1/power", b"ON")
         .expect("Should handle raw string payload");
 
     let line = point.to_line_protocol();
@@ -577,13 +577,13 @@ fn test_bracket_notation_for_special_chars() {
         "air_quality",
         "test/#",
         vec![
-            ("pm25", "$.payload.VINDRIKTNING['PM2.5']"),
-            ("pm10", "$.payload.VINDRIKTNING['PM10']"),
+            ("pm25", "$.payload.air_quality_sensor['pm2.5']"),
+            ("pm10", "$.payload.air_quality_sensor['PM10']"),
         ],
         vec![],
     );
 
-    let payload = br#"{"VINDRIKTNING": {"PM2.5": 5, "PM10": 12}}"#;
+    let payload = br#"{"air_quality_sensor": {"pm2.5": 5, "PM10": 12}}"#;
     let point = process_message_to_point(&processor, &config, "test/sensor", payload)
         .expect("Should handle bracket notation");
 

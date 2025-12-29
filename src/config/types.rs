@@ -50,7 +50,7 @@ pub struct InfluxDBConfig {
 }
 
 fn default_influxdb_port() -> u16 {
-    8086
+    8181
 }
 
 /// HTTP forwarding configuration.

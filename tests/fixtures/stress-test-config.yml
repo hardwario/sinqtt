@@ -1,0 +1,74 @@
+# Stress test configuration
+mqtt:
+  host: localhost
+  port: 1883
+
+influxdb:
+  host: localhost
+  port: 8181
+  token: apiv3_E2vUqtOYFzd0jI7l_hXZhm_LVD3nYYW0PIbD2OK2cwjhXcGhzYM38WSxfhjMeLWXeruqnri0itY9x7VnbpDlUg
+  org: stress-test
+  bucket: stress-test
+
+points:
+  # Numeric payload test
+  - measurement: stress_numeric
+    topic: "stress/+/numeric"
+    fields:
+      value: "$.payload"
+    tags:
+      sensor: "$.topic[1]"
+
+  # JSON payload test
+  - measurement: stress_json
+    topic: "stress/+/json"
+    fields:
+      temperature: "$.payload.temperature"
+      humidity: "$.payload.humidity"
+      pressure: "$.payload.pressure"
+    tags:
+      device: "$.topic[1]"
+
+  # Expression test
+  - measurement: stress_expr
+    topic: "stress/+/expr"
+    fields:
+      celsius: "$.payload"
+      fahrenheit: "= 32 + ($.payload * 9 / 5)"
+    tags:
+      location: "$.topic[1]"
+
+  # Deep nested JSON
+  - measurement: stress_nested
+    topic: "stress/+/nested"
+    fields:
+      deep_value: "$.payload.level1.level2.level3.value"
+    tags:
+      id: "$.topic[1]"
+
+  # Array access
+  - measurement: stress_array
+    topic: "stress/+/array"
+    fields:
+      first: "$.payload[0]"
+      second: "$.payload[1]"
+      third: "$.payload[2]"
+    tags:
+      id: "$.topic[1]"
+
+  # Raw string payload
+  - measurement: stress_raw
+    topic: "stress/+/raw"
+    fields:
+      state: "$.payload"
+    tags:
+      device: "$.topic[1]"
+
+  # Wildcard hash test
+  - measurement: stress_wildcard
+    topic: "stress/multi/#"
+    fields:
+      data: "$.payload"
+    tags:
+      segment1: "$.topic[1]"
+      segment2: "$.topic[2]"

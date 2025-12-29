@@ -153,7 +153,7 @@ points:
 "#;
     let config = load_yaml_config(yaml).unwrap();
     assert_eq!(config.influxdb.host, "localhost");
-    assert_eq!(config.influxdb.port, 8086); // Default
+    assert_eq!(config.influxdb.port, 8181); // Default
     assert_eq!(config.influxdb.token, "my-token");
     assert_eq!(config.influxdb.org, "my-org");
     assert_eq!(config.influxdb.bucket, "my-bucket");

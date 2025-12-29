@@ -7,7 +7,7 @@ mqtt:
 
 influxdb:
   host: localhost
-  port: 8086
+  port: 8181
   token: test-token
   org: test-org
   bucket: test-bucket
@@ -45,7 +45,7 @@ points:
 
   # Raw string payload (e.g., Tasmota power state)
   - measurement: power_state
-    topic: "stat/+/POWER"
+    topic: "stat/+/power"
     fields:
       state: "$.payload"
     tags:
