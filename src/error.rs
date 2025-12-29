@@ -20,6 +20,9 @@ pub enum SinqttError {
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
 
+    #[error("HTTP forward error: {0}")]
+    HttpForward(String),
+
     #[error("Expression error: {0}")]
     Expression(#[from] ExpressionError),
 
