@@ -96,7 +96,6 @@ sinqtt [OPTIONS]
 Options:
   -c, --config <FILE>  Path to configuration file (YAML)  [required]
   -D, --debug          Enable debug logging
-  -o, --output <FILE>  Log output file path
   -t, --test           Validate configuration without running
   -d, --daemon         Daemon mode: retry on error
   -h, --help           Print help

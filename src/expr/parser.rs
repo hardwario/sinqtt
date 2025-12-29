@@ -7,8 +7,15 @@ use std::sync::LazyLock;
 
 /// Regex to match JSONPath expressions in text.
 /// Matches patterns like $.payload, $.payload.temp, $.topic[1], etc.
-static JSONPATH_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\$\.[\w.\[\]']+").unwrap());
+static JSONPATH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\$\.[\w.\[\]']+").expect("invalid JSONPATH_REGEX pattern")
+});
+
+/// Regex to match power operator patterns like "2 ^ 3" or "var ^ 5".
+static POWER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(\w+|\d+\.?\d*|\([^)]+\))\s*\^\s*(\w+|\d+\.?\d*|\([^)]+\))")
+        .expect("invalid POWER_REGEX pattern")
+});
 
 /// Convert a JSONPath expression to a variable name.
 ///
@@ -54,7 +61,7 @@ pub fn parse_expression(text: &str) -> (String, Vec<String>) {
 
     // Sort by length descending to replace longer paths first
     // This prevents $.payload from being replaced before $.payload.offset
-    jsonpaths.sort_by(|a, b| b.len().cmp(&a.len()));
+    jsonpaths.sort_by_key(|s| std::cmp::Reverse(s.len()));
 
     // Convert JSONPath to variables
     for jsonpath in &jsonpaths {
@@ -72,17 +79,14 @@ pub fn parse_expression(text: &str) -> (String, Vec<String>) {
 /// Convert ^ operator to math::pow() function calls.
 /// e.g., "2 ^ 3" becomes "math::pow(2, 3)"
 fn convert_power_operator(expr: &str) -> String {
-    use regex::Regex;
-
-    // Match patterns like "number ^ number" or "var ^ number"
-    let power_regex = Regex::new(r"(\w+|\d+\.?\d*|\([^)]+\))\s*\^\s*(\w+|\d+\.?\d*|\([^)]+\))").unwrap();
-
     let mut result = expr.to_string();
-    while let Some(cap) = power_regex.captures(&result) {
-        let full_match = cap.get(0).unwrap();
-        let base = cap.get(1).unwrap().as_str();
-        let exp = cap.get(2).unwrap().as_str();
-        let replacement = format!("math::pow({}, {})", base, exp);
+    while let Some(cap) = POWER_REGEX.captures(&result) {
+        // These capture groups are guaranteed to exist after a successful match
+        let Some(full_match) = cap.get(0) else { break };
+        let Some(base) = cap.get(1) else { break };
+        let Some(exp) = cap.get(2) else { break };
+
+        let replacement = format!("math::pow({}, {})", base.as_str(), exp.as_str());
         result = result.replacen(full_match.as_str(), &replacement, 1);
     }
 

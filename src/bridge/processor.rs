@@ -155,7 +155,7 @@ impl MessageProcessor {
         // Evaluate expression
         evaluate_expression(spec, &variables)
             .ok()
-            .map(|v| Value::from(v))
+            .map(Value::from)
     }
 
     /// Extract a value using JSONPath.
@@ -165,7 +165,7 @@ impl MessageProcessor {
 
         // jsonpath-rust returns an array of results or a single value
         match results {
-            Value::Array(arr) if !arr.is_empty() => Some(arr.into_iter().next().unwrap()),
+            Value::Array(arr) if !arr.is_empty() => arr.into_iter().next(),
             Value::Array(_) => None,
             Value::Null => None, // Null means path not found
             other => Some(other),
@@ -180,10 +180,8 @@ impl MessageProcessor {
                     Some(Value::from(f))
                 } else if let Some(s) = value.as_str() {
                     s.parse::<f64>().ok().map(Value::from)
-                } else if let Some(i) = value.as_i64() {
-                    Some(Value::from(i as f64))
                 } else {
-                    None
+                    value.as_i64().map(|i| Value::from(i as f64))
                 }
             }
             "int" => {
@@ -210,10 +208,8 @@ impl MessageProcessor {
                         "false" | "0" | "no" | "off" => Some(Value::Bool(false)),
                         _ => None,
                     }
-                } else if let Some(i) = value.as_i64() {
-                    Some(Value::Bool(i != 0))
                 } else {
-                    None
+                    value.as_i64().map(|i| Value::Bool(i != 0))
                 }
             }
             "booltoint" => {
@@ -304,7 +300,15 @@ impl MessageProcessor {
         use cron::Schedule;
         use std::str::FromStr;
 
-        let Ok(cron_schedule) = Schedule::from_str(schedule) else {
+        // Normalize 5-field cron (standard) to 6-field (with seconds)
+        let parts: Vec<&str> = schedule.split_whitespace().collect();
+        let normalized = if parts.len() == 5 {
+            format!("0 {}", schedule)
+        } else {
+            schedule.to_string()
+        };
+
+        let Ok(cron_schedule) = Schedule::from_str(&normalized) else {
             return false;
         };
 

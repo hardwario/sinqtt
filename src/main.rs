@@ -228,8 +228,12 @@ async fn process_point(
     // Add timestamp (current time in nanoseconds)
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as i64;
+        .map(|d| d.as_nanos() as i64)
+        .unwrap_or_else(|_| {
+            // Fallback to 0 if system time is before UNIX epoch (should never happen)
+            warn!("System time is before UNIX epoch, using 0 as timestamp");
+            0
+        });
     let point = point.timestamp(timestamp);
 
     // Write to InfluxDB

@@ -17,10 +17,6 @@ pub struct Args {
     #[arg(short = 'D', long = "debug")]
     pub debug: bool,
 
-    /// Log output file path (default: stdout)
-    #[arg(short = 'o', long = "output")]
-    pub log_file: Option<PathBuf>,
-
     /// Validate configuration without running
     #[arg(short = 't', long = "test")]
     pub test: bool,

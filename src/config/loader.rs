@@ -8,8 +8,9 @@ use serde_yaml::Value;
 use std::path::Path;
 use std::sync::LazyLock;
 
-static ENV_VAR_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\$\{([^}:]+)(?::([^}]*))?\}").unwrap());
+static ENV_VAR_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\$\{([^}:]+)(?::([^}]*))?\}").expect("invalid ENV_VAR_REGEX pattern")
+});
 
 /// Load and validate configuration from a YAML file.
 pub fn load_config(path: &Path) -> Result<Config, ConfigError> {
@@ -54,8 +55,11 @@ fn expand_env_vars(input: &str) -> Result<String, ConfigError> {
     let mut result = input.to_string();
 
     for cap in ENV_VAR_REGEX.captures_iter(input) {
-        let full_match = cap.get(0).unwrap().as_str();
-        let var_name = cap.get(1).unwrap().as_str();
+        // Groups 0 and 1 are guaranteed to exist after a successful match
+        let Some(full_match) = cap.get(0) else { continue };
+        let Some(var_match) = cap.get(1) else { continue };
+
+        let var_name = var_match.as_str();
         let default_value = cap.get(2).map(|m| m.as_str());
 
         let value = match std::env::var(var_name) {
@@ -66,7 +70,7 @@ fn expand_env_vars(input: &str) -> Result<String, ConfigError> {
             },
         };
 
-        result = result.replace(full_match, &value);
+        result = result.replace(full_match.as_str(), &value);
     }
 
     Ok(result)

@@ -17,24 +17,28 @@ pub struct HttpForwarder {
 }
 
 /// Supported HTTP actions.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum HttpAction {
+    #[default]
     Post,
     Put,
     Patch,
 }
 
-impl HttpAction {
-    /// Parse an HTTP action from a string.
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for HttpAction {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "post" => Some(HttpAction::Post),
-            "put" => Some(HttpAction::Put),
-            "patch" => Some(HttpAction::Patch),
-            _ => None,
+            "post" => Ok(HttpAction::Post),
+            "put" => Ok(HttpAction::Put),
+            "patch" => Ok(HttpAction::Patch),
+            _ => Err(()),
         }
     }
+}
 
+impl HttpAction {
     /// Get the action name as a string.
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -45,16 +49,10 @@ impl HttpAction {
     }
 }
 
-impl Default for HttpAction {
-    fn default() -> Self {
-        HttpAction::Post
-    }
-}
-
 impl HttpForwarder {
     /// Create a new HTTP forwarder from configuration.
     pub fn new(config: &HttpConfig) -> Self {
-        let action = HttpAction::from_str(&config.action).unwrap_or_else(|| {
+        let action = config.action.parse().unwrap_or_else(|_| {
             warn!(
                 "Unknown HTTP action '{}', defaulting to POST",
                 config.action
@@ -326,11 +324,11 @@ mod tests {
 
     #[test]
     fn test_http_action_from_str() {
-        assert_eq!(HttpAction::from_str("post"), Some(HttpAction::Post));
-        assert_eq!(HttpAction::from_str("put"), Some(HttpAction::Put));
-        assert_eq!(HttpAction::from_str("patch"), Some(HttpAction::Patch));
-        assert_eq!(HttpAction::from_str("get"), None);
-        assert_eq!(HttpAction::from_str("delete"), None);
+        assert_eq!("post".parse(), Ok(HttpAction::Post));
+        assert_eq!("put".parse(), Ok(HttpAction::Put));
+        assert_eq!("patch".parse(), Ok(HttpAction::Patch));
+        assert!("get".parse::<HttpAction>().is_err());
+        assert!("delete".parse::<HttpAction>().is_err());
     }
 
     #[test]

@@ -12,7 +12,7 @@ pub enum SinqttError {
     Mqtt(#[from] rumqttc::ClientError),
 
     #[error("Connection error: {0}")]
-    Connection(#[from] rumqttc::ConnectionError),
+    Connection(Box<rumqttc::ConnectionError>),
 
     #[error("InfluxDB error: {0}")]
     InfluxDb(String),
@@ -28,6 +28,12 @@ pub enum SinqttError {
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+}
+
+impl From<rumqttc::ConnectionError> for SinqttError {
+    fn from(err: rumqttc::ConnectionError) -> Self {
+        SinqttError::Connection(Box::new(err))
+    }
 }
 
 /// Configuration parsing and validation errors.

@@ -152,10 +152,8 @@ impl FieldValue {
                     Some(FieldValue::Int(i))
                 } else if let Some(u) = n.as_u64() {
                     Some(FieldValue::UInt(u))
-                } else if let Some(f) = n.as_f64() {
-                    Some(FieldValue::Float(f))
                 } else {
-                    None
+                    n.as_f64().map(FieldValue::Float)
                 }
             }
             Value::String(s) => Some(FieldValue::String(s.clone())),
