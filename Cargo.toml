@@ -6,10 +6,18 @@ description = "MQTT to InfluxDB bridge for IoT applications"
 license = "MIT"
 authors = ["HARDWARIO a.s. <ask@hardwario.com>"]
 
+[features]
+default = []
+tls = ["rustls", "rustls-pemfile"]
+
 [dependencies]
 # Required per SPEC
 rumqttc = "0.24"
 jsonpath-rust = "0.7"
+
+# TLS (optional)
+rustls = { version = "0.23", optional = true }
+rustls-pemfile = { version = "2.0", optional = true }
 
 # Configuration
 serde = { version = "1.0", features = ["derive"] }

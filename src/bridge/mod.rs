@@ -7,5 +7,5 @@ mod processor;
 
 pub use http::HttpForwarder;
 pub use influxdb::{InfluxDBWriter, Point};
-pub use mqtt::MqttHandler;
+pub use mqtt::{MqttHandler, MqttMessage};
 pub use processor::{MessageProcessor, ParsedMessage};
