@@ -55,10 +55,6 @@ jobs:
             | macOS | aarch64 (Apple Silicon) | `sinqtt-darwin-aarch64` |
             | Windows | x86_64 | `sinqtt-windows-x86_64.exe` |
 
-            ### Changelog
-
-            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
-
   build-linux:
     name: Build Linux
     needs: create-release
