@@ -1,0 +1,52 @@
+# Sample configuration for sinqtt integration testing
+# This file demonstrates common usage patterns
+
+mqtt:
+  host: localhost
+  port: 1883
+
+influxdb:
+  host: localhost
+  port: 8086
+  token: test-token
+  org: test-org
+  bucket: test-bucket
+  enable_gzip: false
+
+points:
+  # Simple numeric payload
+  - measurement: temperature
+    topic: "sensors/+/temperature"
+    fields:
+      value: "$.payload"
+    tags:
+      sensor_id: "$.topic[1]"
+
+  # JSON payload with multiple fields
+  - measurement: environment
+    topic: "devices/+/telemetry"
+    fields:
+      temperature: "$.payload.temperature"
+      humidity: "$.payload.humidity"
+      pressure:
+        value: "$.payload.pressure"
+        type: float
+    tags:
+      device_id: "$.topic[1]"
+
+  # Computed field (Celsius to Fahrenheit)
+  - measurement: temperature_fahrenheit
+    topic: "sensors/+/temperature"
+    fields:
+      celsius: "$.payload"
+      fahrenheit: "= 32 + ($.payload * 9 / 5)"
+    tags:
+      location: "$.topic[1]"
+
+  # Raw string payload (e.g., Tasmota power state)
+  - measurement: power_state
+    topic: "stat/+/POWER"
+    fields:
+      state: "$.payload"
+    tags:
+      device: "$.topic[1]"
