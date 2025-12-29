@@ -760,3 +760,250 @@ fn test_build_message_object_with_base64decoded() {
     assert!(obj["base64decoded"]["decoded"]["raw"].is_array());
     assert_eq!(obj["base64decoded"]["decoded"]["hex"], json!("74657374"));
 }
+
+// ============================================================================
+// Cron Schedule Tests
+// ============================================================================
+
+/// Helper to create a DateTime from components (all in UTC)
+fn make_datetime(year: i32, month: u32, day: u32, hour: u32, minute: u32, second: u32) -> chrono::DateTime<chrono::Utc> {
+    use chrono::{TimeZone, Utc};
+    Utc.with_ymd_and_hms(year, month, day, hour, minute, second)
+        .single()
+        .expect("Invalid datetime")
+}
+
+#[test]
+fn test_schedule_every_minute() {
+    let processor = MessageProcessor::new(None);
+
+    // "* * * * * *" means every second (6-field cron for this crate)
+    // But we want every minute: "0 * * * * *" (second=0)
+    let schedule = "0 * * * * *";
+
+    // Should match at the start of any minute
+    let time = make_datetime(2025, 1, 15, 10, 30, 0);
+    assert!(processor.schedule_matches_at(schedule, time));
+
+    let time = make_datetime(2025, 1, 15, 10, 31, 0);
+    assert!(processor.schedule_matches_at(schedule, time));
+
+    // Should also match mid-minute (we check the minute, not the second)
+    let time = make_datetime(2025, 1, 15, 10, 30, 30);
+    assert!(processor.schedule_matches_at(schedule, time));
+}
+
+#[test]
+fn test_schedule_specific_minute() {
+    let processor = MessageProcessor::new(None);
+
+    // Every hour at minute 30: "0 30 * * * *"
+    let schedule = "0 30 * * * *";
+
+    // Should match at 10:30
+    let time = make_datetime(2025, 1, 15, 10, 30, 0);
+    assert!(processor.schedule_matches_at(schedule, time));
+
+    // Should NOT match at 10:31
+    let time = make_datetime(2025, 1, 15, 10, 31, 0);
+    assert!(!processor.schedule_matches_at(schedule, time));
+
+    // Should NOT match at 10:29
+    let time = make_datetime(2025, 1, 15, 10, 29, 0);
+    assert!(!processor.schedule_matches_at(schedule, time));
+}
+
+#[test]
+fn test_schedule_specific_hour_and_minute() {
+    let processor = MessageProcessor::new(None);
+
+    // Every day at 14:30: "0 30 14 * * *"
+    let schedule = "0 30 14 * * *";
+
+    // Should match at 14:30
+    let time = make_datetime(2025, 1, 15, 14, 30, 0);
+    assert!(processor.schedule_matches_at(schedule, time));
+
+    // Should NOT match at 13:30
+    let time = make_datetime(2025, 1, 15, 13, 30, 0);
+    assert!(!processor.schedule_matches_at(schedule, time));
+
+    // Should NOT match at 14:00
+    let time = make_datetime(2025, 1, 15, 14, 0, 0);
+    assert!(!processor.schedule_matches_at(schedule, time));
+}
+
+#[test]
+fn test_schedule_every_5_minutes() {
+    let processor = MessageProcessor::new(None);
+
+    // Every 5 minutes: "0 */5 * * * *"
+    let schedule = "0 */5 * * * *";
+
+    // Should match at minute 0, 5, 10, 15, etc.
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 0, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 5, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 10, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 15, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 55, 0)));
+
+    // Should NOT match at minute 1, 2, 3, etc.
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 1, 0)));
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 3, 0)));
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 7, 0)));
+}
+
+#[test]
+fn test_schedule_day_of_week() {
+    let processor = MessageProcessor::new(None);
+
+    // cron crate uses 1-7 where 1=Sunday, 2=Monday, ..., 7=Saturday
+    // Every Monday at 09:00: "0 0 9 * * 2" (2 = Monday in this crate)
+    let schedule = "0 0 9 * * 2";
+
+    // 2025-01-13 is a Monday
+    let monday = make_datetime(2025, 1, 13, 9, 0, 0);
+    assert!(processor.schedule_matches_at(schedule, monday));
+
+    // 2025-01-14 is a Tuesday - should NOT match
+    let tuesday = make_datetime(2025, 1, 14, 9, 0, 0);
+    assert!(!processor.schedule_matches_at(schedule, tuesday));
+
+    // Monday but wrong time - should NOT match
+    let monday_wrong_time = make_datetime(2025, 1, 13, 10, 0, 0);
+    assert!(!processor.schedule_matches_at(schedule, monday_wrong_time));
+}
+
+#[test]
+fn test_schedule_specific_day_of_month() {
+    let processor = MessageProcessor::new(None);
+
+    // Every 1st of month at midnight: "0 0 0 1 * *"
+    let schedule = "0 0 0 1 * *";
+
+    // January 1st at midnight
+    let first = make_datetime(2025, 1, 1, 0, 0, 0);
+    assert!(processor.schedule_matches_at(schedule, first));
+
+    // January 2nd - should NOT match
+    let second = make_datetime(2025, 1, 2, 0, 0, 0);
+    assert!(!processor.schedule_matches_at(schedule, second));
+
+    // February 1st at midnight - should match
+    let feb_first = make_datetime(2025, 2, 1, 0, 0, 0);
+    assert!(processor.schedule_matches_at(schedule, feb_first));
+}
+
+#[test]
+fn test_schedule_range_of_hours() {
+    let processor = MessageProcessor::new(None);
+
+    // Working hours (9-17) every minute: "0 * 9-17 * * *"
+    let schedule = "0 * 9-17 * * *";
+
+    // Should match during working hours
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 9, 0, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 12, 30, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 17, 59, 0)));
+
+    // Should NOT match outside working hours
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 8, 59, 0)));
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 18, 0, 0)));
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 23, 0, 0)));
+}
+
+#[test]
+fn test_schedule_list_of_values() {
+    let processor = MessageProcessor::new(None);
+
+    // At minute 0, 15, 30, 45: "0 0,15,30,45 * * * *"
+    let schedule = "0 0,15,30,45 * * * *";
+
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 0, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 15, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 30, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 45, 0)));
+
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 1, 0)));
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 16, 0)));
+}
+
+#[test]
+fn test_schedule_invalid_cron_expression() {
+    let processor = MessageProcessor::new(None);
+
+    // Invalid expressions should return false
+    assert!(!processor.schedule_matches("invalid"));
+    assert!(!processor.schedule_matches(""));
+    assert!(!processor.schedule_matches("* * *")); // Too few fields
+    assert!(!processor.schedule_matches("99 99 99 99 99 99")); // Invalid values
+}
+
+#[test]
+fn test_schedule_mid_minute() {
+    let processor = MessageProcessor::new(None);
+
+    // Check that we match the entire minute, not just second 0
+    let schedule = "0 30 10 * * *"; // Every day at 10:30
+
+    // Should match anywhere within minute 30
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 30, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 30, 15)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 30, 59)));
+
+    // Should NOT match at 10:29:59 or 10:31:00
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 29, 59)));
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 15, 10, 31, 0)));
+}
+
+#[test]
+fn test_schedule_weekend_only() {
+    let processor = MessageProcessor::new(None);
+
+    // cron crate uses 1-7 where 1=Sunday, 7=Saturday
+    // Saturday and Sunday only: "0 0 * * * 1,7" (1 = Sunday, 7 = Saturday)
+    let schedule = "0 0 * * * 1,7";
+
+    // 2025-01-11 is Saturday
+    let saturday = make_datetime(2025, 1, 11, 12, 0, 0);
+    assert!(processor.schedule_matches_at(schedule, saturday));
+
+    // 2025-01-12 is Sunday
+    let sunday = make_datetime(2025, 1, 12, 12, 0, 0);
+    assert!(processor.schedule_matches_at(schedule, sunday));
+
+    // 2025-01-13 is Monday - should NOT match
+    let monday = make_datetime(2025, 1, 13, 12, 0, 0);
+    assert!(!processor.schedule_matches_at(schedule, monday));
+}
+
+#[test]
+fn test_schedule_monthly_report() {
+    let processor = MessageProcessor::new(None);
+
+    // First day of month at 6:00 AM: "0 0 6 1 * *"
+    let schedule = "0 0 6 1 * *";
+
+    // Should match on 1st at 6:00
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 1, 1, 6, 0, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 2, 1, 6, 0, 0)));
+    assert!(processor.schedule_matches_at(schedule, make_datetime(2025, 12, 1, 6, 0, 0)));
+
+    // Should NOT match on other days
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 2, 6, 0, 0)));
+
+    // Should NOT match at other times
+    assert!(!processor.schedule_matches_at(schedule, make_datetime(2025, 1, 1, 7, 0, 0)));
+}
+
+#[test]
+fn test_schedule_current_time() {
+    let processor = MessageProcessor::new(None);
+
+    // "* * * * * *" matches every second, so current time should always match
+    let schedule = "* * * * * *";
+
+    // This should match now
+    assert!(processor.schedule_matches(schedule));
+}
+

@@ -285,8 +285,22 @@ impl MessageProcessor {
     }
 
     /// Check if a cron schedule matches the current time.
+    ///
+    /// This implements the same behavior as Python's pycron.is_now():
+    /// Returns true if the current minute matches the cron expression.
     pub fn schedule_matches(&self, schedule: &str) -> bool {
-        use chrono::Utc;
+        self.schedule_matches_at(schedule, chrono::Utc::now())
+    }
+
+    /// Check if a cron schedule matches the given time.
+    ///
+    /// This is useful for testing with specific times.
+    pub fn schedule_matches_at<Tz: chrono::TimeZone>(
+        &self,
+        schedule: &str,
+        time: chrono::DateTime<Tz>,
+    ) -> bool {
+        use chrono::{Duration, Timelike};
         use cron::Schedule;
         use std::str::FromStr;
 
@@ -294,13 +308,22 @@ impl MessageProcessor {
             return false;
         };
 
-        let now = Utc::now();
+        // Get start of current minute (truncate seconds and nanoseconds)
+        let current_minute_start = time
+            .with_second(0)
+            .and_then(|t| t.with_nanosecond(0))
+            .unwrap_or_else(|| time.clone());
 
-        // Get the next scheduled time
-        if let Some(next) = cron_schedule.upcoming(Utc).next() {
-            // Check if we're within a minute of a scheduled time
-            let diff = (next - now).num_seconds().abs();
-            diff < 60
+        // Look for scheduled times starting just before the current minute
+        let check_from = current_minute_start.clone() - Duration::seconds(1);
+
+        // The next scheduled time after check_from should be within current minute if schedule matches
+        if let Some(next_scheduled) = cron_schedule.after(&check_from).next() {
+            // Check if the next scheduled time is within the current minute
+            let next_minute_start = next_scheduled
+                .with_second(0)
+                .and_then(|t| t.with_nanosecond(0));
+            next_minute_start == Some(current_minute_start)
         } else {
             false
         }
