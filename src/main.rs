@@ -8,7 +8,7 @@ use sinqtt::bridge::{
 use sinqtt::cli::Args;
 use sinqtt::config::PointConfig;
 use sinqtt::error::SinqttError;
-use sinqtt::{load_config, Config};
+use sinqtt::{Config, load_config};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -26,9 +26,7 @@ async fn main() -> Result<(), SinqttError> {
         EnvFilter::new("info")
     };
 
-    tracing_subscriber::fmt()
-        .with_env_filter(filter)
-        .init();
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     // Load configuration
     info!("Loading configuration from: {:?}", args.config);
@@ -41,7 +39,10 @@ async fn main() -> Result<(), SinqttError> {
 
     info!("Configuration loaded successfully");
     info!("MQTT broker: {}:{}", config.mqtt.host, config.mqtt.port);
-    info!("InfluxDB: {}:{}", config.influxdb.host, config.influxdb.port);
+    info!(
+        "InfluxDB: {}:{}",
+        config.influxdb.host, config.influxdb.port
+    );
     info!("Points configured: {}", config.points.len());
 
     // Run bridge with retry logic if daemon mode
@@ -81,7 +82,10 @@ async fn run_bridge(config: &Config) -> Result<(), SinqttError> {
     let influxdb_writer = Arc::new(InfluxDBWriter::new(&config.influxdb)?);
 
     // Create HTTP forwarder if configured
-    let http_forwarder = config.http.as_ref().map(|h| Arc::new(HttpForwarder::new(h)));
+    let http_forwarder = config
+        .http
+        .as_ref()
+        .map(|h| Arc::new(HttpForwarder::new(h)));
     if http_forwarder.is_some() {
         info!("HTTP forwarding enabled");
     }
@@ -154,10 +158,7 @@ async fn process_message(
         if let Some(schedule) = &point_config.schedule
             && !processor.schedule_matches(schedule)
         {
-            debug!(
-                "Skipping {} due to schedule {}",
-                msg.topic, schedule
-            );
+            debug!("Skipping {} due to schedule {}", msg.topic, schedule);
             continue;
         }
 
@@ -171,7 +172,10 @@ async fn process_message(
         )
         .await
         {
-            error!("Failed to process point {}: {}", point_config.measurement, e);
+            error!(
+                "Failed to process point {}: {}",
+                point_config.measurement, e
+            );
         }
     }
 }
@@ -188,7 +192,10 @@ async fn process_point(
         Some(serde_json::Value::String(s)) => s,
         Some(v) => v.to_string().trim_matches('"').to_string(),
         None => {
-            warn!("Could not determine measurement name for {}", point_config.measurement);
+            warn!(
+                "Could not determine measurement name for {}",
+                point_config.measurement
+            );
             return Ok(());
         }
     };

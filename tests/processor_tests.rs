@@ -2,7 +2,7 @@
 //!
 //! Ported from Python `test_mqtt2influxdb.py`.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sinqtt::bridge::MessageProcessor;
 use sinqtt::config::{Base64DecodeConfig, FieldConfig, FieldSpec};
 
@@ -13,7 +13,9 @@ use sinqtt::config::{Base64DecodeConfig, FieldConfig, FieldSpec};
 #[test]
 fn test_parse_simple_json_number() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("test/sensor1/temperature", b"25.5", 0).unwrap();
+    let msg = processor
+        .parse_message("test/sensor1/temperature", b"25.5", 0)
+        .unwrap();
 
     assert_eq!(msg.topic, vec!["test", "sensor1", "temperature"]);
     assert_eq!(msg.payload, json!(25.5));
@@ -24,7 +26,11 @@ fn test_parse_simple_json_number() {
 fn test_parse_object_json() {
     let processor = MessageProcessor::new(None);
     let msg = processor
-        .parse_message("test/device/data", br#"{"temperature": 23.5, "humidity": 65.2}"#, 1)
+        .parse_message(
+            "test/device/data",
+            br#"{"temperature": 23.5, "humidity": 65.2}"#,
+            1,
+        )
         .unwrap();
 
     assert_eq!(msg.payload["temperature"], json!(23.5));
@@ -50,7 +56,9 @@ fn test_parse_raw_string_off() {
 #[test]
 fn test_parse_raw_string_on() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("stat/device/power", b"ON", 0).unwrap();
+    let msg = processor
+        .parse_message("stat/device/power", b"ON", 0)
+        .unwrap();
 
     assert_eq!(msg.payload, json!("ON"));
 }
@@ -58,7 +66,9 @@ fn test_parse_raw_string_on() {
 #[test]
 fn test_parse_raw_text_payload() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("test/status", b"Device is running", 0).unwrap();
+    let msg = processor
+        .parse_message("test/status", b"Device is running", 0)
+        .unwrap();
 
     assert_eq!(msg.payload, json!("Device is running"));
 }
@@ -66,7 +76,9 @@ fn test_parse_raw_text_payload() {
 #[test]
 fn test_parse_malformed_json_as_string() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("test/topic", b"not valid json {", 0).unwrap();
+    let msg = processor
+        .parse_message("test/topic", b"not valid json {", 0)
+        .unwrap();
 
     assert_eq!(msg.payload, json!("not valid json {"));
 }
@@ -74,7 +86,9 @@ fn test_parse_malformed_json_as_string() {
 #[test]
 fn test_parse_array_json() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("test/array", b"[1, 2, 3, 4, 5]", 0).unwrap();
+    let msg = processor
+        .parse_message("test/array", b"[1, 2, 3, 4, 5]", 0)
+        .unwrap();
 
     assert_eq!(msg.payload, json!([1, 2, 3, 4, 5]));
 }
@@ -82,7 +96,9 @@ fn test_parse_array_json() {
 #[test]
 fn test_parse_string_json() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("test/string", br#""hello world""#, 0).unwrap();
+    let msg = processor
+        .parse_message("test/string", br#""hello world""#, 0)
+        .unwrap();
 
     assert_eq!(msg.payload, json!("hello world"));
 }
@@ -152,7 +168,9 @@ fn test_get_nested_value() {
 #[test]
 fn test_get_topic_segment() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("node/sensor123/temperature", b"25.5", 0).unwrap();
+    let msg = processor
+        .parse_message("node/sensor123/temperature", b"25.5", 0)
+        .unwrap();
 
     let result = processor.get_value("$.topic[1]", &msg).unwrap();
     assert_eq!(result, json!("sensor123"));
@@ -161,7 +179,9 @@ fn test_get_topic_segment() {
 #[test]
 fn test_get_topic_first_segment() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("node/sensor123/temperature", b"25.5", 0).unwrap();
+    let msg = processor
+        .parse_message("node/sensor123/temperature", b"25.5", 0)
+        .unwrap();
 
     let result = processor.get_value("$.topic[0]", &msg).unwrap();
     assert_eq!(result, json!("node"));
@@ -170,7 +190,9 @@ fn test_get_topic_first_segment() {
 #[test]
 fn test_get_topic_last_segment() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("node/sensor123/temperature", b"25.5", 0).unwrap();
+    let msg = processor
+        .parse_message("node/sensor123/temperature", b"25.5", 0)
+        .unwrap();
 
     let result = processor.get_value("$.topic[2]", &msg).unwrap();
     assert_eq!(result, json!("temperature"));
@@ -202,7 +224,9 @@ fn test_get_bracket_notation_special_chars() {
         )
         .unwrap();
 
-    let result = processor.get_value("$.payload.air_quality_sensor['pm2.5']", &msg).unwrap();
+    let result = processor
+        .get_value("$.payload.air_quality_sensor['pm2.5']", &msg)
+        .unwrap();
     assert_eq!(result, json!(5));
 }
 
@@ -212,7 +236,9 @@ fn test_get_expression_celsius_to_fahrenheit_0() {
     let msg = processor.parse_message("test", b"0", 0).unwrap();
 
     // 0°C = 32°F
-    let result = processor.get_value("= 32 + ($.payload * 9 / 5)", &msg).unwrap();
+    let result = processor
+        .get_value("= 32 + ($.payload * 9 / 5)", &msg)
+        .unwrap();
     assert_eq!(result, json!(32.0));
 }
 
@@ -222,7 +248,9 @@ fn test_get_expression_celsius_to_fahrenheit_100() {
     let msg = processor.parse_message("test", b"100", 0).unwrap();
 
     // 100°C = 212°F
-    let result = processor.get_value("= 32 + ($.payload * 9 / 5)", &msg).unwrap();
+    let result = processor
+        .get_value("= 32 + ($.payload * 9 / 5)", &msg)
+        .unwrap();
     assert_eq!(result, json!(212.0));
 }
 
@@ -234,7 +262,9 @@ fn test_get_expression_with_nested_value() {
         .unwrap();
 
     // 37°C ≈ 98.6°F
-    let result = processor.get_value("= 32 + ($.payload.temperature * 9 / 5)", &msg).unwrap();
+    let result = processor
+        .get_value("= 32 + ($.payload.temperature * 9 / 5)", &msg)
+        .unwrap();
     let value = result.as_f64().unwrap();
     assert!((value - 98.6).abs() < 0.01);
 }
@@ -413,7 +443,9 @@ fn test_convert_string_to_booltoint() {
     let result = processor.convert_type(&json!("true"), "booltoint").unwrap();
     assert_eq!(result, json!(1));
 
-    let result = processor.convert_type(&json!("false"), "booltoint").unwrap();
+    let result = processor
+        .convert_type(&json!("false"), "booltoint")
+        .unwrap();
     assert_eq!(result, json!(0));
 
     let result = processor.convert_type(&json!("ON"), "booltoint").unwrap();
@@ -522,7 +554,9 @@ fn test_base64_decode() {
     };
     let processor = MessageProcessor::new(Some(config));
 
-    let msg = processor.parse_message("test", payload.as_bytes(), 0).unwrap();
+    let msg = processor
+        .parse_message("test", payload.as_bytes(), 0)
+        .unwrap();
 
     assert!(msg.base64decoded.is_some());
     let decoded = msg.base64decoded.as_ref().unwrap();
@@ -546,7 +580,9 @@ fn test_base64_decode_binary_data() {
     };
     let processor = MessageProcessor::new(Some(config));
 
-    let msg = processor.parse_message("test", payload.as_bytes(), 0).unwrap();
+    let msg = processor
+        .parse_message("test", payload.as_bytes(), 0)
+        .unwrap();
 
     let decoded = msg.base64decoded.as_ref().unwrap();
     let target = decoded.get("decoded").unwrap();
@@ -563,7 +599,9 @@ fn test_base64_decode_missing_source_no_panic() {
     };
     let processor = MessageProcessor::new(Some(config));
 
-    let msg = processor.parse_message("test", br#"{"other": "data"}"#, 0).unwrap();
+    let msg = processor
+        .parse_message("test", br#"{"other": "data"}"#, 0)
+        .unwrap();
 
     // Should not have base64decoded when source is missing
     assert!(msg.base64decoded.is_none());
@@ -578,7 +616,9 @@ fn test_base64_decode_invalid_base64_no_panic() {
     let processor = MessageProcessor::new(Some(config));
 
     // Invalid base64 string
-    let msg = processor.parse_message("test", br#"{"data": "not-valid-base64!!!"}"#, 0).unwrap();
+    let msg = processor
+        .parse_message("test", br#"{"data": "not-valid-base64!!!"}"#, 0)
+        .unwrap();
 
     // Should not have base64decoded when decoding fails
     assert!(msg.base64decoded.is_none());
@@ -591,7 +631,9 @@ fn test_base64_decode_invalid_base64_no_panic() {
 #[test]
 fn test_extract_field_simple() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("test", br#"{"value": 42.5}"#, 0).unwrap();
+    let msg = processor
+        .parse_message("test", br#"{"value": 42.5}"#, 0)
+        .unwrap();
 
     let spec = FieldSpec::Simple("$.payload.value".to_string());
     let result = processor.extract_field(&spec, &msg).unwrap();
@@ -602,7 +644,9 @@ fn test_extract_field_simple() {
 #[test]
 fn test_extract_field_typed_float() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("test", br#"{"value": "123.45"}"#, 0).unwrap();
+    let msg = processor
+        .parse_message("test", br#"{"value": "123.45"}"#, 0)
+        .unwrap();
 
     let spec = FieldSpec::Typed(FieldConfig {
         value: "$.payload.value".to_string(),
@@ -616,7 +660,9 @@ fn test_extract_field_typed_float() {
 #[test]
 fn test_extract_field_typed_int() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("test", br#"{"value": 42.9}"#, 0).unwrap();
+    let msg = processor
+        .parse_message("test", br#"{"value": 42.9}"#, 0)
+        .unwrap();
 
     let spec = FieldSpec::Typed(FieldConfig {
         value: "$.payload.value".to_string(),
@@ -630,7 +676,9 @@ fn test_extract_field_typed_int() {
 #[test]
 fn test_extract_field_typed_booltoint() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("test", br#"{"status": "ON"}"#, 0).unwrap();
+    let msg = processor
+        .parse_message("test", br#"{"status": "ON"}"#, 0)
+        .unwrap();
 
     let spec = FieldSpec::Typed(FieldConfig {
         value: "$.payload.status".to_string(),
@@ -644,7 +692,9 @@ fn test_extract_field_typed_booltoint() {
 #[test]
 fn test_extract_field_typed_no_type() {
     let processor = MessageProcessor::new(None);
-    let msg = processor.parse_message("test", br#"{"value": 42}"#, 0).unwrap();
+    let msg = processor
+        .parse_message("test", br#"{"value": 42}"#, 0)
+        .unwrap();
 
     let spec = FieldSpec::Typed(FieldConfig {
         value: "$.payload.value".to_string(),
@@ -720,7 +770,9 @@ fn test_expression_multiple_variables() {
         .parse_message("test", br#"{"a": 10, "b": 3}"#, 0)
         .unwrap();
 
-    let result = processor.get_value("= $.payload.a + $.payload.b", &msg).unwrap();
+    let result = processor
+        .get_value("= $.payload.a + $.payload.b", &msg)
+        .unwrap();
     assert_eq!(result, json!(13.0));
 }
 
@@ -753,7 +805,9 @@ fn test_build_message_object_with_base64decoded() {
         target: "decoded".to_string(),
     };
     let processor = MessageProcessor::new(Some(config));
-    let msg = processor.parse_message("test", payload.as_bytes(), 0).unwrap();
+    let msg = processor
+        .parse_message("test", payload.as_bytes(), 0)
+        .unwrap();
 
     let obj = processor.build_message_object(&msg);
 
@@ -766,7 +820,14 @@ fn test_build_message_object_with_base64decoded() {
 // ============================================================================
 
 /// Helper to create a DateTime from components (all in UTC)
-fn make_datetime(year: i32, month: u32, day: u32, hour: u32, minute: u32, second: u32) -> chrono::DateTime<chrono::Utc> {
+fn make_datetime(
+    year: i32,
+    month: u32,
+    day: u32,
+    hour: u32,
+    minute: u32,
+    second: u32,
+) -> chrono::DateTime<chrono::Utc> {
     use chrono::{TimeZone, Utc};
     Utc.with_ymd_and_hms(year, month, day, hour, minute, second)
         .single()
@@ -1006,4 +1067,3 @@ fn test_schedule_current_time() {
     // This should match now
     assert!(processor.schedule_matches(schedule));
 }
-

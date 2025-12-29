@@ -1,7 +1,7 @@
 //! Expression evaluation using evalexpr.
 
 use crate::error::ExpressionError;
-use evalexpr::{eval_with_context, ContextWithMutableVariables, HashMapContext, Value};
+use evalexpr::{ContextWithMutableVariables, HashMapContext, Value, eval_with_context};
 use std::collections::HashMap;
 
 use super::parser::parse_expression;

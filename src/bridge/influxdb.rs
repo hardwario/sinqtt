@@ -24,7 +24,8 @@ impl InfluxDBWriter {
         let client = Client::new();
 
         // Build base URL with proper scheme
-        let base_url = if config.host.starts_with("http://") || config.host.starts_with("https://") {
+        let base_url = if config.host.starts_with("http://") || config.host.starts_with("https://")
+        {
             format!("{}:{}", config.host, config.port)
         } else {
             format!("http://{}:{}", config.host, config.port)
@@ -91,7 +92,8 @@ impl InfluxDBWriter {
 
         let body_bytes = if self.enable_gzip {
             // Compress with gzip
-            let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+            let mut encoder =
+                flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
             encoder.write_all(body.as_bytes())?;
             let compressed = encoder.finish()?;
             request = request.header("Content-Encoding", "gzip");
@@ -100,10 +102,7 @@ impl InfluxDBWriter {
             body.into_bytes()
         };
 
-        let response = request
-            .body(body_bytes)
-            .send()
-            .await?;
+        let response = request.body(body_bytes).send().await?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -452,21 +451,14 @@ mod tests {
         let point =
             Point::new("event").field("message", FieldValue::String(r#"say "hello""#.into()));
 
-        assert_eq!(
-            point.to_line_protocol(),
-            r#"event message="say \"hello\"""#
-        );
+        assert_eq!(point.to_line_protocol(), r#"event message="say \"hello\"""#);
     }
 
     #[test]
     fn test_line_protocol_escape_backslash() {
-        let point =
-            Point::new("event").field("path", FieldValue::String(r"C:\Users\test".into()));
+        let point = Point::new("event").field("path", FieldValue::String(r"C:\Users\test".into()));
 
-        assert_eq!(
-            point.to_line_protocol(),
-            r#"event path="C:\\Users\\test""#
-        );
+        assert_eq!(point.to_line_protocol(), r#"event path="C:\\Users\\test""#);
     }
 
     #[test]

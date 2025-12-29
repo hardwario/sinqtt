@@ -100,8 +100,7 @@ pub fn validate_config(config: &Config) -> Result<(), ConfigError> {
 
 /// Validate a JSONPath expression.
 pub fn validate_jsonpath(path: &str) -> Result<(), ConfigError> {
-    parse_json_path(path)
-        .map_err(|e| ConfigError::InvalidJsonPath(format!("{}: {}", path, e)))?;
+    parse_json_path(path).map_err(|e| ConfigError::InvalidJsonPath(format!("{}: {}", path, e)))?;
     Ok(())
 }
 

@@ -56,8 +56,12 @@ fn expand_env_vars(input: &str) -> Result<String, ConfigError> {
 
     for cap in ENV_VAR_REGEX.captures_iter(input) {
         // Groups 0 and 1 are guaranteed to exist after a successful match
-        let Some(full_match) = cap.get(0) else { continue };
-        let Some(var_match) = cap.get(1) else { continue };
+        let Some(full_match) = cap.get(0) else {
+            continue;
+        };
+        let Some(var_match) = cap.get(1) else {
+            continue;
+        };
 
         let var_name = var_match.as_str();
         let default_value = cap.get(2).map(|m| m.as_str());

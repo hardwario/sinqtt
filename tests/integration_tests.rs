@@ -131,13 +131,8 @@ fn test_simple_numeric_payload() {
         vec![("sensor_id", "$.topic[1]")],
     );
 
-    let point = process_message_to_point(
-        &processor,
-        &config,
-        "test/sensor1/temperature",
-        b"25.5",
-    )
-    .expect("Should produce a point");
+    let point = process_message_to_point(&processor, &config, "test/sensor1/temperature", b"25.5")
+        .expect("Should produce a point");
 
     let line = point.to_line_protocol();
     assert!(line.starts_with("temperature"));
@@ -378,12 +373,7 @@ fn test_multi_level_wildcard() {
 #[test]
 fn test_multi_level_wildcard_zero_levels() {
     let processor = MessageProcessor::new(None);
-    let config = make_point_config(
-        "wildcard",
-        "test/#",
-        vec![("value", "$.payload")],
-        vec![],
-    );
+    let config = make_point_config("wildcard", "test/#", vec![("value", "$.payload")], vec![]);
 
     // # should match zero or more levels
     let point = process_message_to_point(&processor, &config, "test", b"100")
@@ -449,7 +439,10 @@ fn test_no_fields_no_point() {
     let payload = br#"{"other": 123}"#;
     let point = process_message_to_point(&processor, &config, "test/empty", payload);
 
-    assert!(point.is_none(), "Should not produce point when no fields extracted");
+    assert!(
+        point.is_none(),
+        "Should not produce point when no fields extracted"
+    );
 }
 
 #[test]
@@ -463,7 +456,9 @@ fn test_empty_payload_as_null() {
 #[test]
 fn test_invalid_json_as_string() {
     let processor = MessageProcessor::new(None);
-    let parsed = processor.parse_message("test/topic", b"not json", 0).unwrap();
+    let parsed = processor
+        .parse_message("test/topic", b"not json", 0)
+        .unwrap();
 
     assert_eq!(parsed.payload, json!("not json"));
 }
@@ -511,7 +506,7 @@ fn test_multiple_points_same_topic() {
 fn test_measurement_from_jsonpath() {
     let processor = MessageProcessor::new(None);
     let config = make_point_config(
-        "$.payload.type",  // Dynamic measurement name
+        "$.payload.type", // Dynamic measurement name
         "test/#",
         vec![("value", "$.payload.value")],
         vec![],
@@ -529,7 +524,7 @@ fn test_measurement_from_jsonpath() {
 fn test_measurement_from_topic() {
     let processor = MessageProcessor::new(None);
     let config = make_point_config(
-        "$.topic[1]",  // Measurement from topic segment
+        "$.topic[1]", // Measurement from topic segment
         "metrics/+/data",
         vec![("value", "$.payload")],
         vec![],
@@ -552,9 +547,7 @@ fn test_deeply_nested_json() {
     let config = make_point_config(
         "nested",
         "test/#",
-        vec![
-            ("deep_value", "$.payload.level1.level2.level3.value"),
-        ],
+        vec![("deep_value", "$.payload.level1.level2.level3.value")],
         vec![],
     );
 
@@ -601,7 +594,9 @@ fn test_qos_preserved() {
     let processor = MessageProcessor::new(None);
 
     for qos in 0..=2 {
-        let parsed = processor.parse_message("test/topic", b"payload", qos).unwrap();
+        let parsed = processor
+            .parse_message("test/topic", b"payload", qos)
+            .unwrap();
         assert_eq!(parsed.qos, qos);
     }
 }
@@ -615,12 +610,7 @@ fn test_schedule_filtering() {
     let processor = MessageProcessor::new(None);
 
     // Create a config with "every second" schedule (always matches)
-    let mut config = make_point_config(
-        "scheduled",
-        "test/#",
-        vec![("value", "$.payload")],
-        vec![],
-    );
+    let mut config = make_point_config("scheduled", "test/#", vec![("value", "$.payload")], vec![]);
     config.schedule = Some("* * * * * *".to_string()); // Every second
 
     // Schedule should match
@@ -644,8 +634,8 @@ fn test_line_protocol_escaping() {
         vec![("tag with space", "$.topic[0]")], // Space in tag name
     );
 
-    let point = process_message_to_point(&processor, &config, "test", b"42")
-        .expect("Should produce point");
+    let point =
+        process_message_to_point(&processor, &config, "test", b"42").expect("Should produce point");
 
     let line = point.to_line_protocol();
     // Spaces should be escaped in measurement name
@@ -655,12 +645,7 @@ fn test_line_protocol_escaping() {
 #[test]
 fn test_string_field_quoting() {
     let processor = MessageProcessor::new(None);
-    let config = make_point_config(
-        "test",
-        "test/#",
-        vec![("status", "$.payload")],
-        vec![],
-    );
+    let config = make_point_config("test", "test/#", vec![("status", "$.payload")], vec![]);
 
     let point = process_message_to_point(&processor, &config, "test/status", b"\"active\"")
         .expect("Should produce point");

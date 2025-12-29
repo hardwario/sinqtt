@@ -79,46 +79,45 @@ impl MqttHandler {
             })?;
         }
 
-        let client_config = if let (Some(certfile), Some(keyfile)) =
-            (&config.certfile, &config.keyfile)
-        {
-            let cert_chain = fs::read(certfile)?;
-            let key = fs::read(keyfile)?;
+        let client_config =
+            if let (Some(certfile), Some(keyfile)) = (&config.certfile, &config.keyfile) {
+                let cert_chain = fs::read(certfile)?;
+                let key = fs::read(keyfile)?;
 
-            let certs = rustls_pemfile::certs(&mut cert_chain.as_slice())
-                .filter_map(|r| r.ok())
-                .collect();
-            let key = rustls_pemfile::private_key(&mut key.as_slice())
-                .map_err(|e| {
-                    SinqttError::Config(crate::error::ConfigError::Validation(format!(
-                        "Invalid key file: {}",
-                        e
-                    )))
-                })?
-                .ok_or_else(|| {
-                    SinqttError::Config(crate::error::ConfigError::Validation(
-                        "No private key found in key file".to_string(),
-                    ))
-                })?;
+                let certs = rustls_pemfile::certs(&mut cert_chain.as_slice())
+                    .filter_map(|r| r.ok())
+                    .collect();
+                let key = rustls_pemfile::private_key(&mut key.as_slice())
+                    .map_err(|e| {
+                        SinqttError::Config(crate::error::ConfigError::Validation(format!(
+                            "Invalid key file: {}",
+                            e
+                        )))
+                    })?
+                    .ok_or_else(|| {
+                        SinqttError::Config(crate::error::ConfigError::Validation(
+                            "No private key found in key file".to_string(),
+                        ))
+                    })?;
 
-            rustls::ClientConfig::builder()
-                .with_root_certificates(root_cert_store)
-                .with_client_auth_cert(certs, key)
-                .map_err(|e| {
-                    SinqttError::Config(crate::error::ConfigError::Validation(format!(
-                        "TLS client auth error: {}",
-                        e
-                    )))
-                })?
-        } else {
-            rustls::ClientConfig::builder()
-                .with_root_certificates(root_cert_store)
-                .with_no_client_auth()
-        };
+                rustls::ClientConfig::builder()
+                    .with_root_certificates(root_cert_store)
+                    .with_client_auth_cert(certs, key)
+                    .map_err(|e| {
+                        SinqttError::Config(crate::error::ConfigError::Validation(format!(
+                            "TLS client auth error: {}",
+                            e
+                        )))
+                    })?
+            } else {
+                rustls::ClientConfig::builder()
+                    .with_root_certificates(root_cert_store)
+                    .with_no_client_auth()
+            };
 
-        Ok(Transport::tls_with_config(rumqttc::TlsConfiguration::Rustls(
-            Arc::new(client_config),
-        )))
+        Ok(Transport::tls_with_config(
+            rumqttc::TlsConfiguration::Rustls(Arc::new(client_config)),
+        ))
     }
 
     /// Create TLS transport (no-op when TLS feature is disabled).
@@ -150,10 +149,7 @@ impl MqttHandler {
     /// - Disconnection events with logging
     /// - Incoming messages routed to the channel
     /// - Automatic reconnection (handled by rumqttc)
-    pub async fn run(
-        mut self,
-        tx: mpsc::Sender<MqttMessage>,
-    ) -> Result<(), SinqttError> {
+    pub async fn run(mut self, tx: mpsc::Sender<MqttMessage>) -> Result<(), SinqttError> {
         info!(
             "Starting MQTT event loop, {} topics configured",
             self.topics.len()

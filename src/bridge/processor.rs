@@ -5,7 +5,7 @@ use crate::error::SinqttError;
 use crate::expr::{evaluate_expression, jsonpath_to_variable, parse_expression};
 use base64::Engine;
 use jsonpath_rust::JsonPath;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// Parsed MQTT message ready for processing.
@@ -37,7 +37,12 @@ impl MessageProcessor {
     }
 
     /// Parse an MQTT message into a structured format.
-    pub fn parse_message(&self, topic: &str, payload: &[u8], qos: u8) -> Result<ParsedMessage, SinqttError> {
+    pub fn parse_message(
+        &self,
+        topic: &str,
+        payload: &[u8],
+        qos: u8,
+    ) -> Result<ParsedMessage, SinqttError> {
         let topic_parts: Vec<String> = topic.split('/').map(String::from).collect();
 
         // Try UTF-8 decode
@@ -72,12 +77,18 @@ impl MessageProcessor {
     }
 
     /// Decode base64 content from message.
-    fn decode_base64(&self, msg: &ParsedMessage, config: &Base64DecodeConfig) -> Option<Base64Decoded> {
+    fn decode_base64(
+        &self,
+        msg: &ParsedMessage,
+        config: &Base64DecodeConfig,
+    ) -> Option<Base64Decoded> {
         let msg_value = self.build_message_object(msg);
         let value = self.extract_jsonpath(&config.source, &msg_value)?;
 
         let encoded = value.as_str()?;
-        let raw = base64::engine::general_purpose::STANDARD.decode(encoded).ok()?;
+        let raw = base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .ok()?;
         let hex = hex::encode(&raw);
 
         Some(Base64Decoded { raw, hex })
@@ -152,9 +163,7 @@ impl MessageProcessor {
         }
 
         // Evaluate expression
-        evaluate_expression(spec, &variables)
-            .ok()
-            .map(Value::from)
+        evaluate_expression(spec, &variables).ok().map(Value::from)
     }
 
     /// Extract a value using JSONPath.

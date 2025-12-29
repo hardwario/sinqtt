@@ -93,10 +93,7 @@ impl HttpForwarder {
         );
 
         let request = self.build_request();
-        let response = request
-            .json(data)
-            .send()
-            .await?;
+        let response = request.json(data).send().await?;
 
         self.handle_response(response).await
     }
@@ -110,10 +107,7 @@ impl HttpForwarder {
         );
 
         let request = self.build_request();
-        let response = request
-            .form(data)
-            .send()
-            .await?;
+        let response = request.form(data).send().await?;
 
         self.handle_response(response).await
     }
@@ -387,10 +381,7 @@ mod tests {
     #[test]
     fn test_http_content_builder_chaining() {
         let mut builder = HttpContentBuilder::new();
-        builder
-            .add("a", "1")
-            .add("b", "2")
-            .add("c", "3");
+        builder.add("a", "1").add("b", "2").add("c", "3");
 
         let content = builder.build();
         assert_eq!(content.len(), 3);

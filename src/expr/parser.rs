@@ -7,9 +7,8 @@ use std::sync::LazyLock;
 
 /// Regex to match JSONPath expressions in text.
 /// Matches patterns like $.payload, $.payload.temp, $.topic[1], etc.
-static JSONPATH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\$\.[\w.\[\]']+").expect("invalid JSONPATH_REGEX pattern")
-});
+static JSONPATH_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\$\.[\w.\[\]']+").expect("invalid JSONPATH_REGEX pattern"));
 
 /// Regex to match power operator patterns like "2 ^ 3" or "var ^ 5".
 static POWER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -98,10 +97,7 @@ fn convert_power_operator(expr: &str) -> String {
 /// Returns a list of JSON__ prefixed variable names found in the expression.
 pub fn extract_variables(text: &str) -> Vec<String> {
     let (_, jsonpaths) = parse_expression(text);
-    jsonpaths
-        .iter()
-        .map(|p| jsonpath_to_variable(p))
-        .collect()
+    jsonpaths.iter().map(|p| jsonpath_to_variable(p)).collect()
 }
 
 #[cfg(test)]

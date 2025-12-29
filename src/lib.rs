@@ -4,5 +4,5 @@ pub mod config;
 pub mod error;
 pub mod expr;
 
-pub use config::{load_config, Config};
+pub use config::{Config, load_config};
 pub use error::{ConfigError, ExpressionError, SinqttError};
