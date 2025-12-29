@@ -1,0 +1,20 @@
+# Cross-compilation configuration for sinqtt
+# See: https://github.com/cross-rs/cross
+
+[build.env]
+passthrough = [
+    "RUST_BACKTRACE",
+    "RUST_LOG",
+]
+
+# Linux ARM64 (Raspberry Pi 4/5, AWS Graviton)
+[target.aarch64-unknown-linux-gnu]
+image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:main"
+
+# Linux ARMv7 (Raspberry Pi 2/3/4 32-bit, older ARM devices)
+[target.armv7-unknown-linux-gnueabihf]
+image = "ghcr.io/cross-rs/armv7-unknown-linux-gnueabihf:main"
+
+# Linux x86_64
+[target.x86_64-unknown-linux-gnu]
+image = "ghcr.io/cross-rs/x86_64-unknown-linux-gnu:main"

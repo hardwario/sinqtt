@@ -1,6 +1,6 @@
 # sinqtt
 
-[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/hardwario/sinqtt/test.yml)](https://github.com/hardwario/sinqtt/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/hardwario/sinqtt/ci.yml)](https://github.com/hardwario/sinqtt/actions)
 [![GitHub Release](https://img.shields.io/github/v/release/hardwario/sinqtt?sort=semver)](https://github.com/hardwario/sinqtt/releases)
 [![GitHub License](https://img.shields.io/github/license/hardwario/sinqtt)](https://github.com/hardwario/sinqtt/blob/main/LICENSE)
 
