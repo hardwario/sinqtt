@@ -12,8 +12,8 @@ tls = ["rustls", "rustls-pemfile"]
 
 [dependencies]
 # Required per SPEC
-rumqttc = "0.24"
-jsonpath-rust = "0.7"
+rumqttc = "0.25"
+jsonpath-rust = "1.0"
 
 # TLS (optional)
 rustls = { version = "0.23", optional = true }
@@ -34,10 +34,10 @@ clap = { version = "4.5", features = ["derive"] }
 reqwest = { version = "0.12", features = ["json", "gzip"] }
 
 # Expression
-evalexpr = "11.0"
+evalexpr = "13.1"
 
 # Cron
-cron = "0.13"
+cron = "0.15"
 chrono = "0.4"
 
 # Compression

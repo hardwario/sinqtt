@@ -7,7 +7,6 @@ use base64::Engine;
 use jsonpath_rust::JsonPath;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::str::FromStr;
 
 /// Parsed MQTT message ready for processing.
 #[derive(Debug, Clone)]
@@ -160,16 +159,10 @@ impl MessageProcessor {
 
     /// Extract a value using JSONPath.
     fn extract_jsonpath(&self, path: &str, value: &Value) -> Option<Value> {
-        let jsonpath = JsonPath::from_str(path).ok()?;
-        let results = jsonpath.find(value);
+        let results = value.query(path).ok()?;
 
-        // jsonpath-rust returns an array of results or a single value
-        match results {
-            Value::Array(arr) if !arr.is_empty() => arr.into_iter().next(),
-            Value::Array(_) => None,
-            Value::Null => None, // Null means path not found
-            other => Some(other),
-        }
+        // jsonpath-rust returns a vector of references
+        results.into_iter().next().cloned()
     }
 
     /// Convert a value to the specified type.

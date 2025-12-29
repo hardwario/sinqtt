@@ -2,8 +2,7 @@
 
 use super::types::Config;
 use crate::error::ConfigError;
-use jsonpath_rust::JsonPath;
-use std::str::FromStr;
+use jsonpath_rust::parser::parse_json_path;
 
 /// Validate the configuration.
 pub fn validate_config(config: &Config) -> Result<(), ConfigError> {
@@ -101,7 +100,7 @@ pub fn validate_config(config: &Config) -> Result<(), ConfigError> {
 
 /// Validate a JSONPath expression.
 pub fn validate_jsonpath(path: &str) -> Result<(), ConfigError> {
-    JsonPath::<serde_json::Value>::from_str(path)
+    parse_json_path(path)
         .map_err(|e| ConfigError::InvalidJsonPath(format!("{}: {}", path, e)))?;
     Ok(())
 }
