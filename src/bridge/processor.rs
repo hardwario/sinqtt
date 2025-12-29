@@ -167,6 +167,7 @@ impl MessageProcessor {
         match results {
             Value::Array(arr) if !arr.is_empty() => Some(arr.into_iter().next().unwrap()),
             Value::Array(_) => None,
+            Value::Null => None, // Null means path not found
             other => Some(other),
         }
     }
@@ -275,6 +276,11 @@ impl MessageProcessor {
         }
 
         // Check if we've matched everything
+        // Special case: if pattern ends with # and we've consumed all topic parts, it's a match
+        if p_idx < pattern_parts.len() && pattern_parts[p_idx] == "#" {
+            return true;
+        }
+
         p_idx == pattern_parts.len() && t_idx == topic_parts.len()
     }
 
