@@ -2,6 +2,8 @@
 
 use super::types::Config;
 use crate::error::ConfigError;
+use jsonpath_rust::JsonPath;
+use std::str::FromStr;
 
 /// Validate the configuration.
 pub fn validate_config(config: &Config) -> Result<(), ConfigError> {
@@ -46,6 +48,12 @@ pub fn validate_config(config: &Config) -> Result<(), ConfigError> {
                 i
             )));
         }
+
+        // Validate JSONPath in measurement if present
+        if point.measurement.contains("$.") {
+            validate_jsonpath(&point.measurement)?;
+        }
+
         if point.topic.is_empty() {
             return Err(ConfigError::Validation(format!(
                 "Point {} topic cannot be empty",
@@ -88,6 +96,13 @@ pub fn validate_config(config: &Config) -> Result<(), ConfigError> {
         }
     }
 
+    Ok(())
+}
+
+/// Validate a JSONPath expression.
+pub fn validate_jsonpath(path: &str) -> Result<(), ConfigError> {
+    JsonPath::<serde_json::Value>::from_str(path)
+        .map_err(|e| ConfigError::InvalidJsonPath(format!("{}: {}", path, e)))?;
     Ok(())
 }
 
