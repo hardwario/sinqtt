@@ -56,3 +56,10 @@ tokio-test = "0.4"
 tempfile = "3.0"
 assert_cmd = "2.0"
 predicates = "3.0"
+
+[profile.release]
+opt-level = "z"     # Optimize for size
+lto = true          # Link-Time Optimization
+codegen-units = 1   # Better optimization (slower compile)
+panic = "abort"     # Smaller binary, no unwinding
+strip = true        # Strip symbols
