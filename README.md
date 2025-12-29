@@ -352,12 +352,6 @@ cargo test -- --nocapture
 
 ---
 
-## Python Version
-
-This project is a Rust reimplementation of [mqtt2influxdb](python/README.md). The Python version is available on PyPI and provides the same functionality with a Python runtime.
-
----
-
 ## License
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
