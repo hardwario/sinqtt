@@ -528,7 +528,8 @@ fn test_load_invalid_yaml() {
 
 #[test]
 fn test_env_var_substitution() {
-    std::env::set_var("SINQTT_TEST_TOKEN", "secret-token-123");
+    // SAFETY: Test is single-threaded
+    unsafe { std::env::set_var("SINQTT_TEST_TOKEN", "secret-token-123") };
 
     let yaml = r#"
 mqtt:
@@ -548,12 +549,14 @@ points:
     let config = load_yaml_config(yaml).unwrap();
     assert_eq!(config.influxdb.token, "secret-token-123");
 
-    std::env::remove_var("SINQTT_TEST_TOKEN");
+    // SAFETY: Test is single-threaded
+    unsafe { std::env::remove_var("SINQTT_TEST_TOKEN") };
 }
 
 #[test]
 fn test_env_var_with_default() {
-    std::env::remove_var("SINQTT_NONEXISTENT_VAR");
+    // SAFETY: Test is single-threaded
+    unsafe { std::env::remove_var("SINQTT_NONEXISTENT_VAR") };
 
     let yaml = r#"
 mqtt:
@@ -576,7 +579,8 @@ points:
 
 #[test]
 fn test_env_var_with_default_override() {
-    std::env::set_var("SINQTT_MQTT_HOST", "mqtt.example.com");
+    // SAFETY: Test is single-threaded
+    unsafe { std::env::set_var("SINQTT_MQTT_HOST", "mqtt.example.com") };
 
     let yaml = r#"
 mqtt:
@@ -596,12 +600,14 @@ points:
     let config = load_yaml_config(yaml).unwrap();
     assert_eq!(config.mqtt.host, "mqtt.example.com");
 
-    std::env::remove_var("SINQTT_MQTT_HOST");
+    // SAFETY: Test is single-threaded
+    unsafe { std::env::remove_var("SINQTT_MQTT_HOST") };
 }
 
 #[test]
 fn test_env_var_missing_raises_error() {
-    std::env::remove_var("SINQTT_MISSING_TOKEN");
+    // SAFETY: Test is single-threaded
+    unsafe { std::env::remove_var("SINQTT_MISSING_TOKEN") };
 
     let yaml = r#"
 mqtt:
@@ -626,8 +632,11 @@ points:
 
 #[test]
 fn test_multiple_env_vars_in_string() {
-    std::env::set_var("SINQTT_HTTP_HOST", "api.example.com");
-    std::env::set_var("SINQTT_HTTP_PORT", "443");
+    // SAFETY: Test is single-threaded
+    unsafe {
+        std::env::set_var("SINQTT_HTTP_HOST", "api.example.com");
+        std::env::set_var("SINQTT_HTTP_PORT", "443");
+    }
 
     let yaml = r#"
 mqtt:
@@ -653,8 +662,11 @@ points:
         "https://api.example.com:443/api"
     );
 
-    std::env::remove_var("SINQTT_HTTP_HOST");
-    std::env::remove_var("SINQTT_HTTP_PORT");
+    // SAFETY: Test is single-threaded
+    unsafe {
+        std::env::remove_var("SINQTT_HTTP_HOST");
+        std::env::remove_var("SINQTT_HTTP_PORT");
+    }
 }
 
 // ============================================================================

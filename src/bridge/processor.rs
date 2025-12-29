@@ -61,12 +61,12 @@ impl MessageProcessor {
         };
 
         // Handle base64 decoding if configured
-        if let Some(config) = &self.base64_config {
-            if let Some(decoded) = self.decode_base64(&msg, config) {
-                let mut map = HashMap::new();
-                map.insert(config.target.clone(), decoded);
-                msg.base64decoded = Some(map);
-            }
+        if let Some(config) = &self.base64_config
+            && let Some(decoded) = self.decode_base64(&msg, config)
+        {
+            let mut map = HashMap::new();
+            map.insert(config.target.clone(), decoded);
+            msg.base64decoded = Some(map);
         }
 
         Ok(msg)

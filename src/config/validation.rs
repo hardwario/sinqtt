@@ -74,26 +74,26 @@ pub fn validate_config(config: &Config) -> Result<(), ConfigError> {
     }
 
     // Validate TLS file paths if present
-    if let Some(cafile) = &config.mqtt.cafile {
-        if !cafile.exists() {
-            return Err(ConfigError::FileNotFound(
-                cafile.to_string_lossy().to_string(),
-            ));
-        }
+    if let Some(cafile) = &config.mqtt.cafile
+        && !cafile.exists()
+    {
+        return Err(ConfigError::FileNotFound(
+            cafile.to_string_lossy().to_string(),
+        ));
     }
-    if let Some(certfile) = &config.mqtt.certfile {
-        if !certfile.exists() {
-            return Err(ConfigError::FileNotFound(
-                certfile.to_string_lossy().to_string(),
-            ));
-        }
+    if let Some(certfile) = &config.mqtt.certfile
+        && !certfile.exists()
+    {
+        return Err(ConfigError::FileNotFound(
+            certfile.to_string_lossy().to_string(),
+        ));
     }
-    if let Some(keyfile) = &config.mqtt.keyfile {
-        if !keyfile.exists() {
-            return Err(ConfigError::FileNotFound(
-                keyfile.to_string_lossy().to_string(),
-            ));
-        }
+    if let Some(keyfile) = &config.mqtt.keyfile
+        && !keyfile.exists()
+    {
+        return Err(ConfigError::FileNotFound(
+            keyfile.to_string_lossy().to_string(),
+        ));
     }
 
     Ok(())

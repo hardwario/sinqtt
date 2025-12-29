@@ -151,14 +151,14 @@ async fn process_message(
         }
 
         // Check schedule if configured
-        if let Some(schedule) = &point_config.schedule {
-            if !processor.schedule_matches(schedule) {
-                debug!(
-                    "Skipping {} due to schedule {}",
-                    msg.topic, schedule
-                );
-                continue;
-            }
+        if let Some(schedule) = &point_config.schedule
+            && !processor.schedule_matches(schedule)
+        {
+            debug!(
+                "Skipping {} due to schedule {}",
+                msg.topic, schedule
+            );
+            continue;
         }
 
         // Process this point
@@ -212,11 +212,11 @@ async fn process_point(
     // Add fields
     let mut fields_added = 0;
     for (field_name, field_spec) in &point_config.fields {
-        if let Some(value) = processor.extract_field(field_spec, parsed) {
-            if let Some(field_value) = FieldValue::from_json(&value) {
-                point.add_field(field_name, field_value);
-                fields_added += 1;
-            }
+        if let Some(value) = processor.extract_field(field_spec, parsed)
+            && let Some(field_value) = FieldValue::from_json(&value)
+        {
+            point.add_field(field_name, field_value);
+            fields_added += 1;
         }
     }
 
@@ -242,19 +242,19 @@ async fn process_point(
     debug!("Wrote point to InfluxDB: {}", measurement);
 
     // HTTP forwarding if configured
-    if let Some(forwarder) = http_forwarder {
-        if !point_config.httpcontent.is_empty() {
-            let mut content = HttpContentBuilder::new();
-            for (key, spec) in &point_config.httpcontent {
-                if let Some(value) = processor.get_value(spec, parsed) {
-                    content.add_from_json(key, &value);
-                }
+    if let Some(forwarder) = http_forwarder
+        && !point_config.httpcontent.is_empty()
+    {
+        let mut content = HttpContentBuilder::new();
+        for (key, spec) in &point_config.httpcontent {
+            if let Some(value) = processor.get_value(spec, parsed) {
+                content.add_from_json(key, &value);
             }
-            if !content.is_empty() {
-                let json_content = content.build_json();
-                if let Err(e) = forwarder.forward_json(&json_content).await {
-                    warn!("HTTP forward failed: {}", e);
-                }
+        }
+        if !content.is_empty() {
+            let json_content = content.build_json();
+            if let Err(e) = forwarder.forward_json(&json_content).await {
+                warn!("HTTP forward failed: {}", e);
             }
         }
     }

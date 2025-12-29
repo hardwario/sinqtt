@@ -82,10 +82,12 @@ mod tests {
 
     #[test]
     fn test_expand_env_vars_simple() {
-        std::env::set_var("TEST_VAR", "test_value");
+        // SAFETY: Test is single-threaded and var is removed after use
+        unsafe { std::env::set_var("TEST_VAR", "test_value") };
         let result = expand_env_vars("${TEST_VAR}").unwrap();
         assert_eq!(result, "test_value");
-        std::env::remove_var("TEST_VAR");
+        // SAFETY: Test is single-threaded
+        unsafe { std::env::remove_var("TEST_VAR") };
     }
 
     #[test]
