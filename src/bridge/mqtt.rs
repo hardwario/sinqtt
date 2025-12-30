@@ -24,6 +24,10 @@ pub struct MqttHandler {
 
 impl MqttHandler {
     /// Create a new MQTT handler from configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if TLS is configured but the TLS transport cannot be created.
     pub fn new(config: &MqttConfig, topics: Vec<String>) -> Result<Self, SinqttError> {
         let client_id = format!("sinqtt-{}", std::process::id());
         let mut options = MqttOptions::new(client_id, &config.host, config.port);
@@ -149,6 +153,10 @@ impl MqttHandler {
     /// - Disconnection events with logging
     /// - Incoming messages routed to the channel
     /// - Automatic reconnection (handled by rumqttc)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the MQTT connection fails and cannot be recovered.
     pub async fn run(mut self, tx: mpsc::Sender<MqttMessage>) -> Result<(), SinqttError> {
         info!(
             "Starting MQTT event loop, {} topics configured",
@@ -212,6 +220,10 @@ impl MqttHandler {
     }
 
     /// Disconnect from the MQTT broker.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the disconnect request fails.
     pub async fn disconnect(&self) -> Result<(), SinqttError> {
         info!("Disconnecting from MQTT broker");
         self.client.disconnect().await?;
@@ -222,7 +234,6 @@ impl MqttHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
 
     fn make_config(host: &str, port: u16) -> MqttConfig {
         MqttConfig {
@@ -288,6 +299,7 @@ mod tests {
     #[cfg(not(feature = "tls"))]
     #[test]
     fn test_tls_without_feature_returns_error() {
+        use std::path::PathBuf;
         let config = MqttConfig {
             host: "localhost".to_string(),
             port: 8883,

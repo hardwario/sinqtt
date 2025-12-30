@@ -24,6 +24,7 @@ static POWER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 ///
 /// Example: `$.payload.temperature` -> `JSON__payload_temperature`
 /// Example: `$.topic[1]` -> `JSON__topic[1]`
+#[must_use]
 pub fn jsonpath_to_variable(path: &str) -> String {
     path.replace('$', "JSON_").replace('.', "_")
 }
@@ -38,6 +39,7 @@ pub fn jsonpath_to_variable(path: &str) -> String {
 /// reconstruct complex paths with array indices.
 ///
 /// Example: `JSON__payload_temperature` -> `$.payload.temperature`
+#[must_use]
 pub fn variable_to_jsonpath(var: &str) -> String {
     var.replace("JSON_", "$").replace('_', ".")
 }
@@ -48,6 +50,7 @@ pub fn variable_to_jsonpath(var: &str) -> String {
 /// and a list of the original JSONPath expressions found.
 ///
 /// Also converts `^` (power) to `math::pow` for evalexpr compatibility.
+#[must_use]
 pub fn parse_expression(text: &str) -> (String, Vec<String>) {
     let mut result = text.to_string();
     let mut jsonpaths: Vec<String> = Vec::new();
@@ -94,7 +97,8 @@ fn convert_power_operator(expr: &str) -> String {
 
 /// Extract variable names from an expression.
 ///
-/// Returns a list of JSON__ prefixed variable names found in the expression.
+/// Returns a list of `JSON__` prefixed variable names found in the expression.
+#[must_use]
 pub fn extract_variables(text: &str) -> Vec<String> {
     let (_, jsonpaths) = parse_expression(text);
     jsonpaths.iter().map(|p| jsonpath_to_variable(p)).collect()

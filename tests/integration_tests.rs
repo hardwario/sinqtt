@@ -102,11 +102,11 @@ fn process_message_to_point(
     // Add fields
     let mut fields_added = 0;
     for (field_name, field_spec) in &point_config.fields {
-        if let Some(value) = processor.extract_field(field_spec, &parsed) {
-            if let Some(field_value) = FieldValue::from_json(&value) {
-                point.add_field(field_name, field_value);
-                fields_added += 1;
-            }
+        if let Some(value) = processor.extract_field(field_spec, &parsed)
+            && let Some(field_value) = FieldValue::from_json(&value)
+        {
+            point.add_field(field_name, field_value);
+            fields_added += 1;
         }
     }
 
@@ -365,7 +365,7 @@ fn test_multi_level_wildcard() {
 
     for topic in topics {
         let point = process_message_to_point(&processor, &config, topic, b"100")
-            .expect(&format!("Should match topic: {}", topic));
+            .unwrap_or_else(|| panic!("Should match topic: {topic}"));
         assert!(point.to_line_protocol().contains("value=100"));
     }
 }

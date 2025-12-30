@@ -1,4 +1,4 @@
-//! InfluxDB writer using line protocol over HTTP.
+//! `InfluxDB` writer using line protocol over HTTP.
 
 use crate::config::InfluxDBConfig;
 use crate::error::SinqttError;
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::io::Write;
 use tracing::{debug, error};
 
-/// InfluxDB writer for sending data points.
+/// `InfluxDB` writer for sending data points.
 pub struct InfluxDBWriter {
     client: Client,
     write_url: String,
@@ -19,7 +19,11 @@ pub struct InfluxDBWriter {
 }
 
 impl InfluxDBWriter {
-    /// Create a new InfluxDB writer from configuration.
+    /// Create a new `InfluxDB` writer from configuration.
+    ///
+    /// # Errors
+    ///
+    /// This function is infallible but returns `Result` for API consistency.
     pub fn new(config: &InfluxDBConfig) -> Result<Self, SinqttError> {
         let client = Client::new();
 
@@ -41,7 +45,11 @@ impl InfluxDBWriter {
         })
     }
 
-    /// Write a point to InfluxDB.
+    /// Write a point to `InfluxDB`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or `InfluxDB` returns an error status.
     pub async fn write_point(
         &self,
         point: &Point,
@@ -59,7 +67,11 @@ impl InfluxDBWriter {
         self.send_write_request(&url, line).await
     }
 
-    /// Write multiple points to InfluxDB in a single request.
+    /// Write multiple points to `InfluxDB` in a single request.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or `InfluxDB` returns an error status.
     pub async fn write_points(
         &self,
         points: &[Point],
@@ -118,6 +130,7 @@ impl InfluxDBWriter {
     }
 
     /// Get the default bucket name.
+    #[must_use]
     pub fn default_bucket(&self) -> &str {
         &self.default_bucket
     }
@@ -135,55 +148,66 @@ pub struct Point {
 /// Field value types supported by InfluxDB.
 #[derive(Debug, Clone, PartialEq)]
 pub enum FieldValue {
+    /// Floating-point number.
     Float(f64),
+    /// Signed integer.
     Int(i64),
+    /// Unsigned integer.
     UInt(u64),
+    /// String value.
     String(String),
+    /// Boolean value.
     Bool(bool),
 }
 
 impl FieldValue {
-    /// Create a FieldValue from a serde_json::Value.
+    /// Create a `FieldValue` from a `serde_json::Value`.
+    #[must_use]
     pub fn from_json(value: &Value) -> Option<Self> {
         match value {
             Value::Number(n) => {
                 if let Some(i) = n.as_i64() {
-                    Some(FieldValue::Int(i))
+                    Some(Self::Int(i))
                 } else if let Some(u) = n.as_u64() {
-                    Some(FieldValue::UInt(u))
+                    Some(Self::UInt(u))
                 } else {
-                    n.as_f64().map(FieldValue::Float)
+                    n.as_f64().map(Self::Float)
                 }
             }
-            Value::String(s) => Some(FieldValue::String(s.clone())),
-            Value::Bool(b) => Some(FieldValue::Bool(*b)),
+            Value::String(s) => Some(Self::String(s.clone())),
+            Value::Bool(b) => Some(Self::Bool(*b)),
             _ => None,
         }
     }
 
     /// Create a Float field value.
-    pub fn float(value: f64) -> Self {
-        FieldValue::Float(value)
+    #[must_use]
+    pub const fn float(value: f64) -> Self {
+        Self::Float(value)
     }
 
     /// Create an Int field value.
-    pub fn int(value: i64) -> Self {
-        FieldValue::Int(value)
+    #[must_use]
+    pub const fn int(value: i64) -> Self {
+        Self::Int(value)
     }
 
     /// Create a String field value.
+    #[must_use]
     pub fn string(value: impl Into<String>) -> Self {
-        FieldValue::String(value.into())
+        Self::String(value.into())
     }
 
     /// Create a Bool field value.
-    pub fn bool(value: bool) -> Self {
-        FieldValue::Bool(value)
+    #[must_use]
+    pub const fn bool(value: bool) -> Self {
+        Self::Bool(value)
     }
 }
 
 impl Point {
     /// Create a new point with the given measurement name.
+    #[must_use]
     pub fn new(measurement: impl Into<String>) -> Self {
         Self {
             measurement: measurement.into(),
@@ -194,6 +218,7 @@ impl Point {
     }
 
     /// Add a tag to the point.
+    #[must_use]
     pub fn tag(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.tags.insert(key.into(), value.into());
         self
@@ -206,6 +231,7 @@ impl Point {
     }
 
     /// Add a field to the point.
+    #[must_use]
     pub fn field(mut self, key: impl Into<String>, value: FieldValue) -> Self {
         self.fields.insert(key.into(), value);
         self
@@ -218,6 +244,7 @@ impl Point {
     }
 
     /// Add a field from a JSON value.
+    #[must_use]
     pub fn field_from_json(mut self, key: impl Into<String>, value: &Value) -> Self {
         if let Some(field_value) = FieldValue::from_json(value) {
             self.fields.insert(key.into(), field_value);
@@ -226,23 +253,27 @@ impl Point {
     }
 
     /// Set the timestamp in nanoseconds.
-    pub fn timestamp(mut self, ts: i64) -> Self {
+    #[must_use]
+    pub const fn timestamp(mut self, ts: i64) -> Self {
         self.timestamp = Some(ts);
         self
     }
 
-    /// Set the timestamp from a chrono DateTime.
+    /// Set the timestamp from a chrono `DateTime`.
+    #[must_use]
     pub fn timestamp_from_datetime(mut self, dt: chrono::DateTime<chrono::Utc>) -> Self {
         self.timestamp = Some(dt.timestamp_nanos_opt().unwrap_or(0));
         self
     }
 
     /// Check if the point has any fields.
+    #[must_use]
     pub fn has_fields(&self) -> bool {
         !self.fields.is_empty()
     }
 
     /// Convert the point to InfluxDB line protocol format.
+    #[must_use]
     pub fn to_line_protocol(&self) -> String {
         let mut line = escape_measurement(&self.measurement);
 
@@ -370,7 +401,7 @@ mod tests {
     fn test_line_protocol_with_timestamp() {
         let point = Point::new("temperature")
             .field("value", FieldValue::Float(23.5))
-            .timestamp(1609459200000000000);
+            .timestamp(1_609_459_200_000_000_000);
 
         assert_eq!(
             point.to_line_protocol(),
@@ -478,7 +509,7 @@ mod tests {
             .tag("location", "room1")
             .field("humidity", FieldValue::Float(65.0))
             .field("temperature", FieldValue::Float(23.5))
-            .timestamp(1609459200000000000);
+            .timestamp(1_609_459_200_000_000_000);
 
         assert_eq!(
             point.to_line_protocol(),

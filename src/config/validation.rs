@@ -104,30 +104,40 @@ pub fn validate_jsonpath(path: &str) -> Result<(), ConfigError> {
     Ok(())
 }
 
+/// Normalize a cron schedule expression to 6-field format.
+///
+/// The cron crate requires 6-7 fields (seconds, minute, hour, day, month, weekday, \[year\]).
+/// This function converts 5-field (standard cron) to 6-field by prepending "0" for seconds.
+///
+/// Returns `None` if the schedule has fewer than 5 fields.
+#[must_use]
+pub fn normalize_cron_schedule(schedule: &str) -> Option<String> {
+    let parts: Vec<&str> = schedule.split_whitespace().collect();
+
+    if parts.len() == 5 {
+        Some(format!("0 {schedule}"))
+    } else if parts.len() >= 6 {
+        Some(schedule.to_string())
+    } else {
+        None
+    }
+}
+
 /// Validate a cron schedule expression.
 ///
 /// Supports both 5-field (standard) and 6/7-field (with seconds/year) formats.
 /// 5-field format is converted to 6-field by prepending "0" for seconds.
 fn validate_cron_schedule(schedule: &str) -> Result<(), ConfigError> {
-    let parts: Vec<&str> = schedule.split_whitespace().collect();
-
-    // The cron crate requires 6-7 fields (seconds, minute, hour, day, month, weekday, [year])
-    // If we have 5 fields (standard cron), prepend "0" for seconds
-    let cron_expr = if parts.len() == 5 {
-        format!("0 {}", schedule)
-    } else if parts.len() >= 6 {
-        schedule.to_string()
-    } else {
-        return Err(ConfigError::InvalidCron(format!(
-            "Cron expression must have at least 5 fields: {}",
-            schedule
-        )));
-    };
+    let cron_expr = normalize_cron_schedule(schedule).ok_or_else(|| {
+        ConfigError::InvalidCron(format!(
+            "Cron expression must have at least 5 fields: {schedule}"
+        ))
+    })?;
 
     // Try to parse with the cron crate
     use std::str::FromStr;
     cron::Schedule::from_str(&cron_expr)
-        .map_err(|e| ConfigError::InvalidCron(format!("{}: {}", schedule, e)))?;
+        .map_err(|e| ConfigError::InvalidCron(format!("{schedule}: {e}")))?;
 
     Ok(())
 }

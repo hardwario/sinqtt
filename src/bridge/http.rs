@@ -17,7 +17,7 @@ pub struct HttpForwarder {
 }
 
 /// Supported HTTP actions.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HttpAction {
     #[default]
     Post,
@@ -30,9 +30,9 @@ impl std::str::FromStr for HttpAction {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "post" => Ok(HttpAction::Post),
-            "put" => Ok(HttpAction::Put),
-            "patch" => Ok(HttpAction::Patch),
+            "post" => Ok(Self::Post),
+            "put" => Ok(Self::Put),
+            "patch" => Ok(Self::Patch),
             _ => Err(()),
         }
     }
@@ -40,19 +40,21 @@ impl std::str::FromStr for HttpAction {
 
 impl HttpAction {
     /// Get the action name as a string.
-    pub fn as_str(&self) -> &'static str {
+    #[must_use]
+    pub const fn as_str(&self) -> &'static str {
         match self {
-            HttpAction::Post => "POST",
-            HttpAction::Put => "PUT",
-            HttpAction::Patch => "PATCH",
+            Self::Post => "POST",
+            Self::Put => "PUT",
+            Self::Patch => "PATCH",
         }
     }
 }
 
 impl HttpForwarder {
     /// Create a new HTTP forwarder from configuration.
+    #[must_use]
     pub fn new(config: &HttpConfig) -> Self {
-        let action = config.action.parse().unwrap_or_else(|_| {
+        let action = config.action.parse().unwrap_or_else(|()| {
             warn!(
                 "Unknown HTTP action '{}', defaulting to POST",
                 config.action
@@ -70,21 +72,28 @@ impl HttpForwarder {
     }
 
     /// Get the destination URL.
+    #[must_use]
     pub fn destination(&self) -> &str {
         &self.destination
     }
 
     /// Get the HTTP action.
-    pub fn action(&self) -> HttpAction {
+    #[must_use]
+    pub const fn action(&self) -> HttpAction {
         self.action
     }
 
     /// Check if authentication is configured.
-    pub fn has_auth(&self) -> bool {
+    #[must_use]
+    pub const fn has_auth(&self) -> bool {
         self.username.is_some() && self.password.is_some()
     }
 
     /// Forward JSON data to the configured destination.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or the server returns an error status.
     pub async fn forward_json(&self, data: &Value) -> Result<(), SinqttError> {
         debug!(
             "Forwarding JSON to {} via {}",
@@ -99,6 +108,10 @@ impl HttpForwarder {
     }
 
     /// Forward form data to the configured destination.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or the server returns an error status.
     pub async fn forward_form(&self, data: &HashMap<String, String>) -> Result<(), SinqttError> {
         debug!(
             "Forwarding form data to {} via {}",
@@ -113,6 +126,10 @@ impl HttpForwarder {
     }
 
     /// Forward data with a custom content type.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or the server returns an error status.
     pub async fn forward_raw(&self, data: String, content_type: &str) -> Result<(), SinqttError> {
         debug!(
             "Forwarding raw data to {} via {} ({})",
@@ -172,12 +189,14 @@ impl HttpForwarder {
 }
 
 /// Builder for extracting and formatting HTTP content from messages.
+#[derive(Debug, Clone)]
 pub struct HttpContentBuilder {
     content: HashMap<String, String>,
 }
 
 impl HttpContentBuilder {
     /// Create a new HTTP content builder.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             content: HashMap::new(),
@@ -204,16 +223,19 @@ impl HttpContentBuilder {
     }
 
     /// Check if the content is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.content.is_empty()
     }
 
-    /// Build the content as a HashMap.
+    /// Build the content as a `HashMap`.
+    #[must_use]
     pub fn build(self) -> HashMap<String, String> {
         self.content
     }
 
     /// Build the content as a JSON Value.
+    #[must_use]
     pub fn build_json(self) -> Value {
         let map: serde_json::Map<String, Value> = self
             .content
@@ -342,7 +364,7 @@ mod tests {
         let mut builder = HttpContentBuilder::new();
         builder.add_from_json("string", &serde_json::json!("hello"));
         builder.add_from_json("number", &serde_json::json!(42));
-        builder.add_from_json("float", &serde_json::json!(3.14));
+        builder.add_from_json("float", &serde_json::json!(3.15));
         builder.add_from_json("bool", &serde_json::json!(true));
         builder.add_from_json("null", &serde_json::json!(null));
 
@@ -350,7 +372,7 @@ mod tests {
 
         assert_eq!(content.get("string"), Some(&"hello".to_string()));
         assert_eq!(content.get("number"), Some(&"42".to_string()));
-        assert_eq!(content.get("float"), Some(&"3.14".to_string()));
+        assert_eq!(content.get("float"), Some(&"3.15".to_string()));
         assert_eq!(content.get("bool"), Some(&"true".to_string()));
         assert_eq!(content.get("null"), Some(&"".to_string()));
     }

@@ -1,6 +1,6 @@
 //! Message processing pipeline.
 
-use crate::config::{Base64DecodeConfig, FieldSpec};
+use crate::config::{Base64DecodeConfig, FieldSpec, normalize_cron_schedule};
 use crate::error::SinqttError;
 use crate::expr::{evaluate_expression, jsonpath_to_variable, parse_expression};
 use base64::Engine;
@@ -32,11 +32,16 @@ pub struct MessageProcessor {
 
 impl MessageProcessor {
     /// Create a new message processor.
+    #[must_use]
     pub fn new(base64_config: Option<Base64DecodeConfig>) -> Self {
         Self { base64_config }
     }
 
     /// Parse an MQTT message into a structured format.
+    ///
+    /// # Errors
+    ///
+    /// This function is currently infallible but returns `Result` for API consistency.
     pub fn parse_message(
         &self,
         topic: &str,
@@ -95,6 +100,7 @@ impl MessageProcessor {
     }
 
     /// Build a JSON object representing the message for JSONPath queries.
+    #[must_use]
     pub fn build_message_object(&self, msg: &ParsedMessage) -> Value {
         let mut obj = json!({
             "topic": msg.topic,
@@ -123,6 +129,7 @@ impl MessageProcessor {
     /// - Expression mode (starts with `=`): Evaluate mathematical expression
     /// - JSONPath mode (contains `$.`): Extract using JSONPath
     /// - Literal mode: Return the spec string as-is
+    #[must_use]
     pub fn get_value(&self, spec: &str, msg: &ParsedMessage) -> Option<Value> {
         if spec.is_empty() {
             return None;
@@ -175,6 +182,7 @@ impl MessageProcessor {
     }
 
     /// Convert a value to the specified type.
+    #[must_use]
     pub fn convert_type(&self, value: &Value, type_name: &str) -> Option<Value> {
         match type_name {
             "float" => {
@@ -233,6 +241,7 @@ impl MessageProcessor {
     }
 
     /// Extract field value according to field specification.
+    #[must_use]
     pub fn extract_field(&self, spec: &FieldSpec, msg: &ParsedMessage) -> Option<Value> {
         match spec {
             FieldSpec::Simple(s) => self.get_value(s, msg),
@@ -248,6 +257,7 @@ impl MessageProcessor {
     }
 
     /// Check if a topic matches a subscription pattern.
+    #[must_use]
     pub fn topic_matches(&self, pattern: &str, topic: &str) -> bool {
         let pattern_parts: Vec<&str> = pattern.split('/').collect();
         let topic_parts: Vec<&str> = topic.split('/').collect();
@@ -284,8 +294,9 @@ impl MessageProcessor {
 
     /// Check if a cron schedule matches the current time.
     ///
-    /// This implements the same behavior as Python's pycron.is_now():
+    /// This implements the same behavior as Python's `pycron.is_now()`:
     /// Returns true if the current minute matches the cron expression.
+    #[must_use]
     pub fn schedule_matches(&self, schedule: &str) -> bool {
         self.schedule_matches_at(schedule, chrono::Utc::now())
     }
@@ -293,6 +304,7 @@ impl MessageProcessor {
     /// Check if a cron schedule matches the given time.
     ///
     /// This is useful for testing with specific times.
+    #[must_use]
     pub fn schedule_matches_at<Tz: chrono::TimeZone>(
         &self,
         schedule: &str,
@@ -303,11 +315,8 @@ impl MessageProcessor {
         use std::str::FromStr;
 
         // Normalize 5-field cron (standard) to 6-field (with seconds)
-        let parts: Vec<&str> = schedule.split_whitespace().collect();
-        let normalized = if parts.len() == 5 {
-            format!("0 {}", schedule)
-        } else {
-            schedule.to_string()
+        let Some(normalized) = normalize_cron_schedule(schedule) else {
+            return false;
         };
 
         let Ok(cron_schedule) = Schedule::from_str(&normalized) else {

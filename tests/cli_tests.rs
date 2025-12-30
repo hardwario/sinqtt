@@ -7,6 +7,11 @@ use predicates::prelude::*;
 use std::io::Write;
 use tempfile::NamedTempFile;
 
+/// Get a Command for the sinqtt binary.
+fn sinqtt_cmd() -> Command {
+    Command::new(env!("CARGO_BIN_EXE_sinqtt"))
+}
+
 /// Helper to create a valid config file.
 fn create_valid_config() -> NamedTempFile {
     let config = r#"
@@ -65,7 +70,7 @@ points:
 
 #[test]
 fn test_version_option() {
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.arg("--version")
         .assert()
         .success()
@@ -78,7 +83,7 @@ fn test_version_option() {
 
 #[test]
 fn test_help_option() {
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.arg("--help")
         .assert()
         .success()
@@ -90,7 +95,7 @@ fn test_help_option() {
 
 #[test]
 fn test_help_short_option() {
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.arg("-h")
         .assert()
         .success()
@@ -103,7 +108,7 @@ fn test_help_short_option() {
 
 #[test]
 fn test_missing_config_shows_error() {
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("config").or(predicate::str::contains("required")));
@@ -111,7 +116,7 @@ fn test_missing_config_shows_error() {
 
 #[test]
 fn test_nonexistent_config_shows_error() {
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", "/nonexistent/path/config.yml"])
         .assert()
         .failure();
@@ -124,7 +129,7 @@ fn test_nonexistent_config_shows_error() {
 #[test]
 fn test_test_mode_valid_config() {
     let config_file = create_valid_config();
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", config_file.path().to_str().unwrap(), "--test"])
         .assert()
         .success()
@@ -134,7 +139,7 @@ fn test_test_mode_valid_config() {
 #[test]
 fn test_test_mode_invalid_port() {
     let config_file = create_invalid_port_config();
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", config_file.path().to_str().unwrap(), "--test"])
         .assert()
         .failure();
@@ -143,7 +148,7 @@ fn test_test_mode_invalid_port() {
 #[test]
 fn test_test_mode_short_option() {
     let config_file = create_valid_config();
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", config_file.path().to_str().unwrap(), "-t"])
         .assert()
         .success();
@@ -156,7 +161,7 @@ fn test_test_mode_short_option() {
 #[test]
 fn test_debug_short_option_accepted() {
     let config_file = create_valid_config();
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", config_file.path().to_str().unwrap(), "-t", "-D"])
         .assert()
         .success();
@@ -169,7 +174,7 @@ fn test_debug_short_option_accepted() {
 #[test]
 fn test_daemon_short_option_accepted() {
     let config_file = create_valid_config();
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     // Test that -d flag is accepted (use with -t to avoid needing network)
     cmd.args(["-c", config_file.path().to_str().unwrap(), "-t", "-d"])
         .assert()
@@ -200,7 +205,7 @@ points: []
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(config.as_bytes()).unwrap();
 
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", file.path().to_str().unwrap(), "-t"])
         .assert()
         .failure();
@@ -229,7 +234,7 @@ points:
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(config.as_bytes()).unwrap();
 
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", file.path().to_str().unwrap(), "-t"])
         .assert()
         .failure();
@@ -259,7 +264,7 @@ points:
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(config.as_bytes()).unwrap();
 
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", file.path().to_str().unwrap(), "-t"])
         .assert()
         .failure();
@@ -290,7 +295,7 @@ points:
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(config.as_bytes()).unwrap();
 
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", file.path().to_str().unwrap(), "-t"])
         .assert()
         .failure();
@@ -319,7 +324,7 @@ points:
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(config.as_bytes()).unwrap();
 
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", file.path().to_str().unwrap(), "-t"])
         .assert()
         .failure();
@@ -328,7 +333,7 @@ points:
 #[test]
 fn test_combined_short_options() {
     let config_file = create_valid_config();
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     // Test combining multiple short options
     cmd.args(["-c", config_file.path().to_str().unwrap(), "-t", "-D", "-d"])
         .assert()
@@ -359,7 +364,7 @@ points:
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(config.as_bytes()).unwrap();
 
-    let mut cmd = Command::cargo_bin("sinqtt").unwrap();
+    let mut cmd = sinqtt_cmd();
     cmd.args(["-c", file.path().to_str().unwrap(), "-t"])
         .assert()
         .success();

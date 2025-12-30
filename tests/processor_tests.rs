@@ -349,8 +349,8 @@ fn test_convert_to_string() {
     let result = processor.convert_type(&json!(42), "str").unwrap();
     assert_eq!(result, json!("42"));
 
-    let result = processor.convert_type(&json!(3.14), "str").unwrap();
-    assert_eq!(result, json!("3.14"));
+    let result = processor.convert_type(&json!(3.15), "str").unwrap();
+    assert_eq!(result, json!("3.15"));
 }
 
 #[test]

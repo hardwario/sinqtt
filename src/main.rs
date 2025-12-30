@@ -12,6 +12,7 @@ use sinqtt::{Config, load_config};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
+use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -45,17 +46,38 @@ async fn main() -> Result<(), SinqttError> {
     );
     info!("Points configured: {}", config.points.len());
 
+    // Set up graceful shutdown
+    let cancel_token = CancellationToken::new();
+    let cancel_token_clone = cancel_token.clone();
+
+    // Spawn signal handler
+    tokio::spawn(async move {
+        shutdown_signal().await;
+        info!("Shutdown signal received, stopping...");
+        cancel_token_clone.cancel();
+    });
+
     // Run bridge with retry logic if daemon mode
     loop {
-        match run_bridge(&config).await {
+        match run_bridge(&config, cancel_token.clone()).await {
             Ok(()) => break,
             Err(e) => {
+                if cancel_token.is_cancelled() {
+                    info!("Shutdown requested, exiting");
+                    break;
+                }
                 if !args.daemon {
                     return Err(e);
                 }
-                error!("Error: {}", e);
+                error!("Error: {e}");
                 info!("Retrying in 30 seconds...");
-                tokio::time::sleep(Duration::from_secs(30)).await;
+                tokio::select! {
+                    () = tokio::time::sleep(Duration::from_secs(30)) => {}
+                    () = cancel_token.cancelled() => {
+                        info!("Shutdown requested during retry wait");
+                        break;
+                    }
+                }
             }
         }
     }
@@ -63,15 +85,41 @@ async fn main() -> Result<(), SinqttError> {
     Ok(())
 }
 
-async fn run_bridge(config: &Config) -> Result<(), SinqttError> {
-    // Collect unique topics from all point configurations
-    let topics: Vec<String> = config
+/// Wait for shutdown signal (Ctrl+C or SIGTERM).
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        () = ctrl_c => {}
+        () = terminate => {}
+    }
+}
+
+async fn run_bridge(config: &Config, cancel_token: CancellationToken) -> Result<(), SinqttError> {
+    // Collect unique topics from all point configurations (sorted for determinism)
+    let mut topics: Vec<String> = config
         .points
         .iter()
         .map(|p| p.topic.clone())
         .collect::<std::collections::HashSet<_>>()
         .into_iter()
         .collect();
+    topics.sort();
 
     info!("Subscribing to {} unique topics", topics.len());
 
@@ -104,24 +152,44 @@ async fn run_bridge(config: &Config) -> Result<(), SinqttError> {
     let influxdb_clone = influxdb_writer.clone();
     let http_clone = http_forwarder.clone();
     let points_clone = points.clone();
+    let cancel_token_process = cancel_token.clone();
 
     let process_task = tokio::spawn(async move {
-        while let Some(msg) = rx.recv().await {
-            process_message(
-                &msg,
-                &points_clone,
-                &processor_clone,
-                &influxdb_clone,
-                http_clone.as_ref().map(|h| h.as_ref()),
-            )
-            .await;
+        loop {
+            tokio::select! {
+                msg = rx.recv() => {
+                    match msg {
+                        Some(msg) => {
+                            process_message(
+                                &msg,
+                                &points_clone,
+                                &processor_clone,
+                                &influxdb_clone,
+                                http_clone.as_ref().map(std::convert::AsRef::as_ref),
+                            )
+                            .await;
+                        }
+                        None => break,
+                    }
+                }
+                () = cancel_token_process.cancelled() => {
+                    debug!("Message processor shutting down");
+                    break;
+                }
+            }
         }
     });
 
     info!("Bridge started, waiting for messages...");
 
-    // Run MQTT handler (blocks until disconnected or error)
-    let mqtt_result = mqtt_handler.run(tx).await;
+    // Run MQTT handler with cancellation support
+    let mqtt_result = tokio::select! {
+        result = mqtt_handler.run(tx) => result,
+        () = cancel_token.cancelled() => {
+            info!("MQTT handler shutting down");
+            Ok(())
+        }
+    };
 
     // Wait for processor to finish
     let _ = process_task.await;
@@ -235,12 +303,11 @@ async fn process_point(
     // Add timestamp (current time in nanoseconds)
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_nanos() as i64)
-        .unwrap_or_else(|_| {
-            // Fallback to 0 if system time is before UNIX epoch (should never happen)
-            warn!("System time is before UNIX epoch, using 0 as timestamp");
-            0
-        });
+        .map(|d| {
+            // Safe conversion: i64 can hold nanoseconds until year ~2262
+            i64::try_from(d.as_nanos()).unwrap_or(i64::MAX)
+        })
+        .unwrap_or(0);
     let point = point.timestamp(timestamp);
 
     // Write to InfluxDB

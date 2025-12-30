@@ -1,4 +1,4 @@
-//! Bridge module - connects MQTT to InfluxDB.
+//! Bridge module - connects MQTT to `InfluxDB`.
 
 mod http;
 mod influxdb;
