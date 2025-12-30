@@ -22,6 +22,18 @@ jobs:
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+      - name: Verify version matches Cargo.toml
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          CARGO_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "Tag version: $TAG_VERSION"
+          echo "Cargo.toml version: $CARGO_VERSION"
+          if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
+            echo "::error::Version mismatch! Tag is v$TAG_VERSION but Cargo.toml has $CARGO_VERSION"
+            exit 1
+          fi
+          echo "✓ Versions match"
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
