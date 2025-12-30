@@ -3,10 +3,10 @@
 use clap::Parser;
 use std::path::PathBuf;
 
-/// MQTT to InfluxDB bridge for IoT applications.
+/// MQTT to InfluxDB v3 bridge with flexible JSONPath transformation.
 #[derive(Parser, Debug)]
 #[command(name = "sinqtt")]
-#[command(about = "MQTT to InfluxDB bridge for IoT applications")]
+#[command(about = "MQTT to InfluxDB v3 bridge with flexible JSONPath transformation")]
 #[command(version)]
 pub struct Args {
     /// Path to configuration file (YAML format)

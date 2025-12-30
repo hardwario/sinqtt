@@ -1,4 +1,4 @@
-//! sinqtt - MQTT to InfluxDB bridge for IoT applications.
+//! sinqtt - MQTT to InfluxDB v3 bridge with flexible JSONPath transformation.
 
 use clap::Parser;
 use sinqtt::bridge::{
