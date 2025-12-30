@@ -1,6 +1,6 @@
 [package]
 name = "sinqtt"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 description = "MQTT to InfluxDB v3 bridge with flexible JSONPath transformation"
 license = "MIT"
